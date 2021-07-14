@@ -5,7 +5,7 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub fn new() -> Cpu {
+    pub fn new() -> Self {
         Cpu {
             pc: 0x200,
             registers: [0; 16],
@@ -30,6 +30,12 @@ impl Cpu {
     }
 }
 
+impl Default for Cpu {
+    fn default() -> Self {
+        Cpu::new()
+    }
+}
+
 #[derive(Debug)]
 struct OpArgs {
     opcode: u8,
@@ -45,7 +51,7 @@ impl OpArgs {
         OpArgs {
             opcode: match (instruction & 0xF000) >> 12 {
                 0x0 | 0x8 | 0xE | 0xF => ((instruction & 0xF000) >> 8) + (instruction & 0x000F),
-                op @ _ => op,
+                op => op,
             } as u8,
             x_reg: ((instruction & 0x0F00) >> 8) as usize,
             y_reg: ((instruction & 0x00F0) >> 4) as usize,
