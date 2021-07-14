@@ -27,6 +27,7 @@ impl Cpu {
         let opargs = OpArgs::new(instruction);
         match opargs.opcode {
             0x01 => self.jp(opargs.address),
+            0x0E => self.ret(),
             0x02 => self.call(opargs.address),
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
@@ -41,6 +42,10 @@ impl Cpu {
 
     fn jp(&mut self, address: u16) {
         self.pc = address;
+    }
+
+    fn ret(&mut self) {
+        self.pc = self.memory.callstack_pop().unwrap();
     }
 
     fn call(&mut self, address: u16) {
@@ -156,16 +161,31 @@ mod tests {
     }
 
     #[test]
-    fn call_pushes_pc() {
-        let mut cpu = Cpu::new();
-        cpu.execute(0x2BCD);
-        assert_eq!(0x202, cpu.memory.callstack_peek().unwrap());
-    }
-
-    #[test]
     fn call_sets_pc() {
         let mut cpu = Cpu::new();
         cpu.execute(0x2BCD);
         assert_eq!(0xBCD, cpu.pc);
+    }
+
+    #[test]
+    fn ret_pops_pc() {
+        let mut cpu = Cpu::new();
+        cpu.execute(0x2BCD);
+        cpu.execute(0x00EE);
+        assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn call_ret_nested() {
+        let mut cpu = Cpu::new();
+        cpu.execute(0x2678);
+        cpu.execute(0x2ABC);
+        assert_eq!(0xABC, cpu.pc);
+
+        cpu.execute(0x00EE);
+        assert_eq!(0x67A, cpu.pc);
+
+        cpu.execute(0x00EE);
+        assert_eq!(0x202, cpu.pc);
     }
 }
