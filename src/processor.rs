@@ -91,7 +91,7 @@ impl Processor {
     }
 
     fn op_7xkk(&mut self, x: usize, kk: u8) {
-        self.v[x] += kk;
+        self.add_with_overflow(x, kk);
     }
 
     fn op_8xy0(&mut self, x: usize, y: usize) {
@@ -111,14 +111,14 @@ impl Processor {
     }
 
     fn op_8xy4(&mut self, x: usize, y: usize) {
-        self.add_register(x, self.v[y]);
+        self.add_with_overflow(x, self.v[y]);
     }
 
     fn op_8xy5(&mut self, x: usize, y: usize) {
-        self.add_register(x, u8::MAX - self.v[y] + 1);
+        self.add_with_overflow(x, u8::MAX - self.v[y] + 1);
     }
 
-    fn add_register(&mut self, x: usize, kk: u8) {
+    fn add_with_overflow(&mut self, x: usize, kk: u8) {
         let mut value = self.v[x] as u16;
         value += kk as u16;
         self.v[0xF] = (value > 0xFF) as u8;
