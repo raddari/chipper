@@ -24,23 +24,34 @@ impl Processor {
 
     pub fn execute(&mut self, instruction: u16) {
         self.pc += 2;
-        let opargs = OpArgs::new(instruction);
-        match opargs.opcode {
-            0x01 => self.jp(opargs.address),
-            0x02 => self.call(opargs.address),
-            0x03 => self.se(opargs.x_reg, opargs.byte),
-            0x04 => self.sne(opargs.x_reg, opargs.byte),
-            0x05 => self.se(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            0x06 => self.ld(opargs.x_reg, opargs.byte),
-            0x07 => self.add(opargs.x_reg, opargs.byte),
-            0x0E => self.ret(),
-            0x80 => self.ld(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            0x81 => self.or(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            0x82 => self.and(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            0x83 => self.xor(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            0x85 => self.sub(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            _ => panic!("No matching opcode for {:02x}", opargs.opcode),
+        let nibbles = (
+            ((instruction & 0xF000) >> 12) as u8,
+            ((instruction & 0x0F00) >> 8) as u8,
+            ((instruction & 0x00F0) >> 4) as u8,
+            (instruction & 0x000F) as u8,
+        );
+        let x = nibbles.1 as usize;
+        let y = nibbles.2 as usize;
+        let n = nibbles.3 as usize;
+        let nnn = (instruction & 0x0FFF) as u16;
+        let kk = (instruction & 0x00FF) as u8;
+
+        match nibbles {
+            (0x0, 0x0, 0xE, 0xE) => self.op_00ee(),
+            (0x1, _, _, _) => self.op_1nnn(nnn),
+            (0x2, _, _, _) => self.op_2nnn(nnn),
+            (0x3, _, _, _) => self.op_3xkk(x, kk),
+            (0x4, _, _, _) => self.op_4xkk(x, kk),
+            (0x5, _, _, _) => self.op_5xy0(x, y),
+            (0x6, _, _, _) => self.op_6xkk(x, kk),
+            (0x7, _, _, _) => self.op_7xkk(x, kk),
+            (0x8, _, _, 0x0) => self.op_8xy0(x, y),
+            (0x8, _, _, 0x1) => self.op_8xy1(x, y),
+            (0x8, _, _, 0x2) => self.op_8xy2(x, y),
+            (0x8, _, _, 0x3) => self.op_8xy3(x, y),
+            (0x8, _, _, 0x4) => self.op_8xy4(x, y),
+            (0x8, _, _, 0x5) => self.op_8xy5(x, y),
+            _ => (),
         };
     }
 
@@ -48,83 +59,61 @@ impl Processor {
         self.registers[register]
     }
 
-    fn jp(&mut self, address: u16) {
+    fn op_1nnn(&mut self, address: u16) {
         self.pc = address;
     }
 
-    fn ret(&mut self) {
+    fn op_00ee(&mut self) {
         self.pc = self.memory.callstack_pop().unwrap();
     }
 
-    fn call(&mut self, address: u16) {
+    fn op_2nnn(&mut self, address: u16) {
         self.memory.callstack_push(self.pc);
         self.pc = address;
     }
 
-    fn se(&mut self, dest_reg: usize, constant: u8) {
-        if constant == self.reg_val(dest_reg) {
+    fn op_3xkk(&mut self, x: usize, kk: u8) {
+        if kk == self.registers[x] {
             self.pc += 2;
         }
     }
 
-    fn sne(&mut self, dest_reg: usize, constant: u8) {
-        if constant != self.reg_val(dest_reg) {
+    fn op_4xkk(&mut self, x: usize, kk: u8) {
+        if kk != self.registers[x] {
             self.pc += 2;
         }
     }
 
-    fn ld(&mut self, dest_reg: usize, constant: u8) {
-        self.registers[dest_reg] = constant;
+    fn op_5xy0(&mut self, x: usize, y: usize) {}
+
+    fn op_6xkk(&mut self, x: usize, kk: u8) {
+        self.registers[x] = kk;
     }
 
-    fn or(&mut self, dest_reg: usize, constant: u8) {
-        self.registers[dest_reg] |= constant;
+    fn op_7xkk(&mut self, x: usize, kk: u8) {}
+
+    fn op_8xy0(&mut self, x: usize, y: usize) {}
+
+    fn op_8xy1(&mut self, x: usize, y: usize) {
+        self.registers[x] |= self.registers[y];
     }
 
-    fn and(&mut self, dest_reg: usize, constant: u8) {
-        self.registers[dest_reg] &= constant;
+    fn op_8xy2(&mut self, x: usize, y: usize) {
+        self.registers[x] &= self.registers[y];
     }
 
-    fn xor(&mut self, dest_reg: usize, constant: u8) {
-        self.registers[dest_reg] ^= constant;
+    fn op_8xy3(&mut self, x: usize, y: usize) {
+        self.registers[x] ^= self.registers[y];
     }
 
-    fn add(&mut self, dest_reg: usize, constant: u8) {
-        let mut value = self.registers[dest_reg] as u16;
-        value += constant as u16;
+    fn op_8xy4(&mut self, x: usize, y: usize) {
+        let mut value = self.registers[x] as u16;
+        value += self.registers[y] as u16;
         self.registers[0xF] = (value > 0xFF) as u8;
-        self.registers[dest_reg] = value as u8;
+        self.registers[x] = value as u8;
     }
 
-    fn sub(&mut self, dest_reg: usize, constant: u8) {
-        self.add(dest_reg, u8::MAX - constant + 1);
-    }
-}
-
-#[derive(Debug)]
-struct OpArgs {
-    opcode: u8,
-    x_reg: usize,
-    y_reg: usize,
-    address: u16,
-    byte: u8,
-    nibble: u8,
-}
-
-impl OpArgs {
-    fn new(instruction: u16) -> OpArgs {
-        OpArgs {
-            opcode: match (instruction & 0xF000) >> 12 {
-                0x0 | 0x8 | 0xE | 0xF => ((instruction & 0xF000) >> 8) + (instruction & 0x000F),
-                op => op,
-            } as u8,
-            x_reg: ((instruction & 0x0F00) >> 8) as usize,
-            y_reg: ((instruction & 0x00F0) >> 4) as usize,
-            address: (instruction & 0x0FFF),
-            byte: (instruction & 0x00FF) as u8,
-            nibble: (instruction & 0x000F) as u8,
-        }
-    }
+    fn op_8xy5(&mut self, x: usize, y: usize) {}
 }
 
 #[cfg(test)]
@@ -155,7 +144,7 @@ mod tests {
     #[test]
     fn add_constant_to_register_normal() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 1);
+        cpu.op_6xkk(0x0, 1);
         cpu.execute(0x7001);
         assert_eq!(2, cpu.reg_val(0x0));
         assert_eq!(0, cpu.reg_val(0xF));
@@ -164,7 +153,7 @@ mod tests {
     #[test]
     fn add_constant_to_register_overflow() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 0xFF);
+        cpu.op_6xkk(0x0, 0xFF);
         cpu.execute(0x7001);
         assert_eq!(0, cpu.reg_val(0x0));
         assert_eq!(1, cpu.reg_val(0xF));
@@ -173,8 +162,8 @@ mod tests {
     #[test]
     fn add_register_to_register_normal() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 1);
-        cpu.ld(0x1, 2);
+        cpu.op_6xkk(0x0, 1);
+        cpu.op_6xkk(0x1, 2);
         cpu.execute(0x8014);
         assert_eq!(3, cpu.reg_val(0x0));
         assert_eq!(0, cpu.reg_val(0xF));
@@ -183,8 +172,8 @@ mod tests {
     #[test]
     fn add_register_to_register_overflow() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 0xFF);
-        cpu.ld(0x1, 1);
+        cpu.op_6xkk(0x0, 0xFF);
+        cpu.op_6xkk(0x1, 1);
         cpu.execute(0x8014);
         assert_eq!(0, cpu.reg_val(0x0));
         assert_eq!(1, cpu.reg_val(0xF));
@@ -229,7 +218,7 @@ mod tests {
     #[test]
     fn se_constant_skip() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 32);
+        cpu.op_6xkk(0x0, 32);
         cpu.execute(0x3020);
         assert_eq!(0x204, cpu.pc);
     }
@@ -237,7 +226,7 @@ mod tests {
     #[test]
     fn se_constant_no_skip() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 32);
+        cpu.op_6xkk(0x0, 32);
         cpu.execute(0x3021);
         assert_eq!(0x202, cpu.pc);
     }
@@ -245,7 +234,7 @@ mod tests {
     #[test]
     fn sne_constant_skip() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 32);
+        cpu.op_6xkk(0x0, 32);
         cpu.execute(0x4021);
         assert_eq!(0x204, cpu.pc);
     }
@@ -253,7 +242,7 @@ mod tests {
     #[test]
     fn sne_constant_no_skip() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 32);
+        cpu.op_6xkk(0x0, 32);
         cpu.execute(0x4020);
         assert_eq!(0x202, cpu.pc);
     }
@@ -261,8 +250,8 @@ mod tests {
     #[test]
     fn se_register_skip() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 32);
-        cpu.ld(0x1, 32);
+        cpu.op_6xkk(0x0, 32);
+        cpu.op_6xkk(0x1, 32);
         cpu.execute(0x5010);
         assert_eq!(0x204, cpu.pc);
     }
@@ -270,8 +259,8 @@ mod tests {
     #[test]
     fn se_register_no_skip() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 32);
-        cpu.ld(0x1, 33);
+        cpu.op_6xkk(0x0, 32);
+        cpu.op_6xkk(0x1, 33);
         cpu.execute(0x5010);
         assert_eq!(0x202, cpu.pc);
     }
@@ -279,7 +268,7 @@ mod tests {
     #[test]
     fn ld_register_to_register() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 32);
+        cpu.op_6xkk(0x0, 32);
         cpu.execute(0x8100);
         assert_eq!(32, cpu.reg_val(0x1));
     }
@@ -287,8 +276,8 @@ mod tests {
     #[test]
     fn or_register_to_register() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 0x55);
-        cpu.ld(0x1, 0x3C);
+        cpu.op_6xkk(0x0, 0x55);
+        cpu.op_6xkk(0x1, 0x3C);
         cpu.execute(0x8011);
         assert_eq!(0x7D, cpu.reg_val(0x0));
     }
@@ -296,8 +285,8 @@ mod tests {
     #[test]
     fn and_register_to_register() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 0x55);
-        cpu.ld(0x1, 0x3C);
+        cpu.op_6xkk(0x0, 0x55);
+        cpu.op_6xkk(0x1, 0x3C);
         cpu.execute(0x8012);
         assert_eq!(0x14, cpu.reg_val(0x0));
     }
@@ -305,8 +294,8 @@ mod tests {
     #[test]
     fn xor_register_to_register() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 0x55);
-        cpu.ld(0x1, 0x3C);
+        cpu.op_6xkk(0x0, 0x55);
+        cpu.op_6xkk(0x1, 0x3C);
         cpu.execute(0x8013);
         assert_eq!(0x69, cpu.reg_val(0x0));
     }
@@ -314,8 +303,8 @@ mod tests {
     #[test]
     fn sub_register_to_register_no_borrow() {
         let mut cpu = Processor::new();
-        cpu.ld(0x0, 21);
-        cpu.ld(0x1, 7);
+        cpu.op_6xkk(0x0, 21);
+        cpu.op_6xkk(0x1, 7);
         cpu.execute(0x8015);
         assert_eq!(14, cpu.reg_val(0x0));
         assert_eq!(1, cpu.reg_val(0xF));
@@ -324,8 +313,8 @@ mod tests {
     #[test]
     fn sub_register_to_register_borrow() {
         let mut cpu = Processor::new();
-        cpu.ld(0x1, 21);
-        cpu.ld(0x0, 7);
+        cpu.op_6xkk(0x1, 21);
+        cpu.op_6xkk(0x0, 7);
         cpu.execute(0x8015);
         assert_eq!(242, cpu.reg_val(0x0));
         assert_eq!(0, cpu.reg_val(0xF));
