@@ -20,10 +20,6 @@ impl Memory {
         self.callstack.is_empty()
     }
 
-    pub fn callstack_peek(&self) -> Option<u16> {
-        self.callstack.last().copied()
-    }
-
     pub fn callstack_push(&mut self, address: u16) {
         self.callstack.push(address);
     }
