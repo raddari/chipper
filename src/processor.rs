@@ -3,7 +3,7 @@ use crate::memory::Memory;
 #[derive(Debug)]
 pub struct Processor {
     pc: u16,
-    registers: [u8; 16],
+    v: [u8; 16],
     memory: Memory,
 }
 
@@ -17,7 +17,7 @@ impl Processor {
     pub fn new() -> Self {
         Processor {
             pc: 0x200,
-            registers: [0; 16],
+            v: [0; 16],
             memory: Memory::new(),
         }
     }
@@ -32,7 +32,7 @@ impl Processor {
         );
         let x = nibbles.1 as usize;
         let y = nibbles.2 as usize;
-        let n = nibbles.3 as usize;
+        let _n = nibbles.3 as usize;
         let nnn = (instruction & 0x0FFF) as u16;
         let kk = (instruction & 0x00FF) as u8;
 
@@ -55,10 +55,6 @@ impl Processor {
         };
     }
 
-    pub fn reg_val(&self, register: usize) -> u8 {
-        self.registers[register]
-    }
-
     fn op_1nnn(&mut self, address: u16) {
         self.pc = address;
     }
@@ -73,13 +69,13 @@ impl Processor {
     }
 
     fn op_3xkk(&mut self, x: usize, kk: u8) {
-        if kk == self.registers[x] {
+        if kk == self.v[x] {
             self.pc += 2;
         }
     }
 
     fn op_4xkk(&mut self, x: usize, kk: u8) {
-        if kk != self.registers[x] {
+        if kk != self.v[x] {
             self.pc += 2;
         }
     }
@@ -87,7 +83,7 @@ impl Processor {
     fn op_5xy0(&mut self, x: usize, y: usize) {}
 
     fn op_6xkk(&mut self, x: usize, kk: u8) {
-        self.registers[x] = kk;
+        self.v[x] = kk;
     }
 
     fn op_7xkk(&mut self, x: usize, kk: u8) {}
@@ -95,22 +91,22 @@ impl Processor {
     fn op_8xy0(&mut self, x: usize, y: usize) {}
 
     fn op_8xy1(&mut self, x: usize, y: usize) {
-        self.registers[x] |= self.registers[y];
+        self.v[x] |= self.v[y];
     }
 
     fn op_8xy2(&mut self, x: usize, y: usize) {
-        self.registers[x] &= self.registers[y];
+        self.v[x] &= self.v[y];
     }
 
     fn op_8xy3(&mut self, x: usize, y: usize) {
-        self.registers[x] ^= self.registers[y];
+        self.v[x] ^= self.v[y];
     }
 
     fn op_8xy4(&mut self, x: usize, y: usize) {
-        let mut value = self.registers[x] as u16;
-        value += self.registers[y] as u16;
-        self.registers[0xF] = (value > 0xFF) as u8;
-        self.registers[x] = value as u8;
+        let mut value = self.v[x] as u16;
+        value += self.v[y] as u16;
+        self.v[0xF] = (value > 0xFF) as u8;
+        self.v[x] = value as u8;
     }
 
     fn op_8xy5(&mut self, x: usize, y: usize) {}
@@ -138,7 +134,7 @@ mod tests {
     fn ld_constant_to_register() {
         let mut cpu = Processor::new();
         cpu.execute(0x6075);
-        assert_eq!(0x75, cpu.reg_val(0x0));
+        assert_eq!(0x75, cpu.v[0x0]);
     }
 
     #[test]
@@ -146,8 +142,8 @@ mod tests {
         let mut cpu = Processor::new();
         cpu.op_6xkk(0x0, 1);
         cpu.execute(0x7001);
-        assert_eq!(2, cpu.reg_val(0x0));
-        assert_eq!(0, cpu.reg_val(0xF));
+        assert_eq!(2, cpu.v[0x0]);
+        assert_eq!(0, cpu.v[0xF]);
     }
 
     #[test]
@@ -155,8 +151,8 @@ mod tests {
         let mut cpu = Processor::new();
         cpu.op_6xkk(0x0, 0xFF);
         cpu.execute(0x7001);
-        assert_eq!(0, cpu.reg_val(0x0));
-        assert_eq!(1, cpu.reg_val(0xF));
+        assert_eq!(0, cpu.v[0x0]);
+        assert_eq!(1, cpu.v[0xF]);
     }
 
     #[test]
@@ -165,8 +161,8 @@ mod tests {
         cpu.op_6xkk(0x0, 1);
         cpu.op_6xkk(0x1, 2);
         cpu.execute(0x8014);
-        assert_eq!(3, cpu.reg_val(0x0));
-        assert_eq!(0, cpu.reg_val(0xF));
+        assert_eq!(3, cpu.v[0x0]);
+        assert_eq!(0, cpu.v[0xF]);
     }
 
     #[test]
@@ -175,8 +171,8 @@ mod tests {
         cpu.op_6xkk(0x0, 0xFF);
         cpu.op_6xkk(0x1, 1);
         cpu.execute(0x8014);
-        assert_eq!(0, cpu.reg_val(0x0));
-        assert_eq!(1, cpu.reg_val(0xF));
+        assert_eq!(0, cpu.v[0x0]);
+        assert_eq!(1, cpu.v[0xF]);
     }
 
     #[test]
@@ -270,7 +266,7 @@ mod tests {
         let mut cpu = Processor::new();
         cpu.op_6xkk(0x0, 32);
         cpu.execute(0x8100);
-        assert_eq!(32, cpu.reg_val(0x1));
+        assert_eq!(32, cpu.v[0x1]);
     }
 
     #[test]
@@ -279,7 +275,7 @@ mod tests {
         cpu.op_6xkk(0x0, 0x55);
         cpu.op_6xkk(0x1, 0x3C);
         cpu.execute(0x8011);
-        assert_eq!(0x7D, cpu.reg_val(0x0));
+        assert_eq!(0x7D, cpu.v[0x0]);
     }
 
     #[test]
@@ -288,7 +284,7 @@ mod tests {
         cpu.op_6xkk(0x0, 0x55);
         cpu.op_6xkk(0x1, 0x3C);
         cpu.execute(0x8012);
-        assert_eq!(0x14, cpu.reg_val(0x0));
+        assert_eq!(0x14, cpu.v[0x0]);
     }
 
     #[test]
@@ -297,7 +293,7 @@ mod tests {
         cpu.op_6xkk(0x0, 0x55);
         cpu.op_6xkk(0x1, 0x3C);
         cpu.execute(0x8013);
-        assert_eq!(0x69, cpu.reg_val(0x0));
+        assert_eq!(0x69, cpu.v[0x0]);
     }
 
     #[test]
@@ -306,8 +302,8 @@ mod tests {
         cpu.op_6xkk(0x0, 21);
         cpu.op_6xkk(0x1, 7);
         cpu.execute(0x8015);
-        assert_eq!(14, cpu.reg_val(0x0));
-        assert_eq!(1, cpu.reg_val(0xF));
+        assert_eq!(14, cpu.v[0x0]);
+        assert_eq!(1, cpu.v[0xF]);
     }
 
     #[test]
@@ -316,7 +312,7 @@ mod tests {
         cpu.op_6xkk(0x1, 21);
         cpu.op_6xkk(0x0, 7);
         cpu.execute(0x8015);
-        assert_eq!(242, cpu.reg_val(0x0));
-        assert_eq!(0, cpu.reg_val(0xF));
+        assert_eq!(242, cpu.v[0x0]);
+        assert_eq!(0, cpu.v[0xF]);
     }
 }
