@@ -35,8 +35,8 @@ impl Cpu {
             0x07 => self.add(opargs.x_reg, opargs.byte),
             0x0E => self.ret(),
             0x80 => self.ld(opargs.x_reg, self.reg_val(opargs.y_reg)),
-            0x81 => self.or(opargs.x_reg, opargs.y_reg),
-            0x82 => self.and(opargs.x_reg, opargs.y_reg),
+            0x81 => self.or(opargs.x_reg, self.reg_val(opargs.y_reg)),
+            0x82 => self.and(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x83 => self.xor(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
@@ -76,12 +76,12 @@ impl Cpu {
         self.registers[dest_reg] = constant;
     }
 
-    fn or(&mut self, dest_reg: usize, src_reg: usize) {
-        self.registers[dest_reg] |= self.reg_val(src_reg);
+    fn or(&mut self, dest_reg: usize, constant: u8) {
+        self.registers[dest_reg] |= constant;
     }
 
-    fn and(&mut self, dest_reg: usize, src_reg: usize) {
-        self.registers[dest_reg] &= self.reg_val(src_reg);
+    fn and(&mut self, dest_reg: usize, constant: u8) {
+        self.registers[dest_reg] &= constant;
     }
 
     fn xor(&mut self, dest_reg: usize, constant: u8) {
