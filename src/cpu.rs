@@ -37,6 +37,7 @@ impl Cpu {
             0x80 => self.ld(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x81 => self.or(opargs.x_reg, opargs.y_reg),
             0x82 => self.and(opargs.x_reg, opargs.y_reg),
+            0x83 => self.xor(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
         };
@@ -81,6 +82,10 @@ impl Cpu {
 
     fn and(&mut self, dest_reg: usize, src_reg: usize) {
         self.registers[dest_reg] &= self.reg_val(src_reg);
+    }
+
+    fn xor(&mut self, dest_reg: usize, constant: u8) {
+        self.registers[dest_reg] ^= constant;
     }
 
     fn add(&mut self, dest_reg: usize, constant: u8) {
@@ -290,5 +295,14 @@ mod tests {
         cpu.ld(0x1, 0x3C);
         cpu.execute(0x8012);
         assert_eq!(0x14, cpu.reg_val(0x0));
+    }
+
+    #[test]
+    fn xor_register_to_register() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 0x55);
+        cpu.ld(0x1, 0x3C);
+        cpu.execute(0x8013);
+        assert_eq!(0x69, cpu.reg_val(0x0));
     }
 }
