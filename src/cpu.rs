@@ -156,21 +156,21 @@ mod tests {
     #[test]
     fn jump_sets_pc() {
         let mut cpu = Cpu::new();
-        cpu.execute(0x1BCD);
-        assert_eq!(0xBCD, cpu.pc);
+        cpu.execute(0x1ABC);
+        assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn call_sets_pc() {
         let mut cpu = Cpu::new();
-        cpu.execute(0x2BCD);
-        assert_eq!(0xBCD, cpu.pc);
+        cpu.execute(0x2ABC);
+        assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn ret_pops_pc() {
         let mut cpu = Cpu::new();
-        cpu.execute(0x2BCD);
+        cpu.execute(0x2ABC);
         cpu.execute(0x00EE);
         assert_eq!(0x202, cpu.pc);
     }
