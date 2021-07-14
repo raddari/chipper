@@ -16,7 +16,8 @@ impl Cpu {
         self.pc += 2;
         let opargs = OpArgs::new(instruction);
         match opargs.opcode {
-            0x6 => self.ld(opargs.x_reg, opargs.byte),
+            0x06 => self.ld(opargs.x_reg, opargs.byte),
+            0x07 => self.add(opargs.x_reg, opargs.byte),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
         };
     }
@@ -27,6 +28,10 @@ impl Cpu {
 
     fn ld(&mut self, dest_reg: usize, constant: u8) {
         self.registers[dest_reg] = constant;
+    }
+
+    fn add(&mut self, dest_reg: usize, constant: u8) {
+        self.registers[dest_reg] += constant;
     }
 }
 
@@ -84,5 +89,13 @@ mod tests {
         let mut cpu = Cpu::new();
         cpu.execute(0x6075);
         assert_eq!(0x75, cpu.reg_val(0x0));
+    }
+
+    #[test]
+    fn add_constant_to_register() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 1);
+        cpu.execute(0x7001);
+        assert_eq!(2, cpu.reg_val(0x0));
     }
 }
