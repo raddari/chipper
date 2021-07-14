@@ -24,12 +24,8 @@ impl Processor {
 
     pub fn execute(&mut self, instruction: u16) {
         self.pc += 2;
-        let nibbles = (
-            ((instruction & 0xF000) >> 12) as u8,
-            ((instruction & 0x0F00) >> 8) as u8,
-            ((instruction & 0x00F0) >> 4) as u8,
-            (instruction & 0x000F) as u8,
-        );
+
+        let nibbles = Self::unpack_nibbles(instruction);
         let x = nibbles.1 as usize;
         let y = nibbles.2 as usize;
         let _n = nibbles.3 as usize;
@@ -53,6 +49,15 @@ impl Processor {
             (0x8, _, _, 0x5) => self.op_8xy5(x, y),
             _ => (),
         };
+    }
+
+    fn unpack_nibbles(instruction: u16) -> (u8, u8, u8, u8) {
+        (
+            ((instruction & 0xF000) >> 12) as u8,
+            ((instruction & 0x0F00) >> 8) as u8,
+            ((instruction & 0x00F0) >> 4) as u8,
+            (instruction & 0x000F) as u8,
+        )
     }
 
     fn op_1nnn(&mut self, address: u16) {
