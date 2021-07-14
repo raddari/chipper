@@ -16,6 +16,7 @@ impl Cpu {
         self.pc += 2;
         let opargs = OpArgs::new(instruction);
         match opargs.opcode {
+            0x01 => self.jp(opargs.address),
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
@@ -25,6 +26,10 @@ impl Cpu {
 
     pub fn reg_val(&self, register: usize) -> u8 {
         self.registers[register]
+    }
+
+    fn jp(&mut self, address: u16) {
+        self.pc = address;
     }
 
     fn ld(&mut self, dest_reg: usize, constant: u8) {
@@ -131,5 +136,12 @@ mod tests {
         cpu.execute(0x8014);
         assert_eq!(0, cpu.reg_val(0x0));
         assert_eq!(1, cpu.reg_val(0xF));
+    }
+
+    #[test]
+    fn jump_sets_pc() {
+        let mut cpu = Cpu::new();
+        cpu.execute(0x1BCD);
+        assert_eq!(0xBCD, cpu.pc);
     }
 }
