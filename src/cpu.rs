@@ -29,6 +29,7 @@ impl Cpu {
             0x01 => self.jp(opargs.address),
             0x0E => self.ret(),
             0x02 => self.call(opargs.address),
+            0x03 => self.se(opargs.x_reg, opargs.byte),
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
@@ -51,6 +52,12 @@ impl Cpu {
     fn call(&mut self, address: u16) {
         self.memory.callstack_push(self.pc);
         self.pc = address;
+    }
+
+    fn se(&mut self, dest_reg: usize, constant: u8) {
+        if constant == self.reg_val(dest_reg) {
+            self.pc += 2;
+        }
     }
 
     fn ld(&mut self, dest_reg: usize, constant: u8) {
@@ -187,6 +194,22 @@ mod tests {
         assert_eq!(0x67A, cpu.pc);
 
         cpu.execute(0x00EE);
+        assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn se_constant_skip() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 32);
+        cpu.execute(0x3020);
+        assert_eq!(0x204, cpu.pc);
+    }
+
+    #[test]
+    fn se_constant_no_skip() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 32);
+        cpu.execute(0x3021);
         assert_eq!(0x202, cpu.pc);
     }
 }
