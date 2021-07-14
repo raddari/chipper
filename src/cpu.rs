@@ -95,11 +95,12 @@ mod tests {
     }
 
     #[test]
-    fn add_constant_to_register() {
+    fn add_constant_to_register_normal() {
         let mut cpu = Cpu::new();
         cpu.ld(0x0, 1);
         cpu.execute(0x7001);
         assert_eq!(2, cpu.reg_val(0x0));
+        assert_eq!(0, cpu.reg_val(0xF));
     }
 
     #[test]
