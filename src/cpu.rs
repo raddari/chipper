@@ -34,6 +34,7 @@ impl Cpu {
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
             0x0E => self.ret(),
+            0x80 => self.ld(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
         };
@@ -253,5 +254,13 @@ mod tests {
         cpu.ld(0x1, 33);
         cpu.execute(0x5010);
         assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn ld_register_to_register() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 32);
+        cpu.execute(0x8100);
+        assert_eq!(32, cpu.reg_val(0x1));
     }
 }
