@@ -30,6 +30,7 @@ impl Cpu {
             0x02 => self.call(opargs.address),
             0x03 => self.se(opargs.x_reg, opargs.byte),
             0x04 => self.sne(opargs.x_reg, opargs.byte),
+            0x05 => self.se(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
             0x0E => self.ret(),
@@ -233,6 +234,24 @@ mod tests {
         let mut cpu = Cpu::new();
         cpu.ld(0x0, 32);
         cpu.execute(0x4020);
+        assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn se_register_skip() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 32);
+        cpu.ld(0x1, 32);
+        cpu.execute(0x5010);
+        assert_eq!(0x204, cpu.pc);
+    }
+
+    #[test]
+    fn se_register_no_skip() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 32);
+        cpu.ld(0x1, 33);
+        cpu.execute(0x5010);
         assert_eq!(0x202, cpu.pc);
     }
 }
