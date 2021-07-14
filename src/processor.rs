@@ -80,15 +80,23 @@ impl Processor {
         }
     }
 
-    fn op_5xy0(&mut self, x: usize, y: usize) {}
+    fn op_5xy0(&mut self, x: usize, y: usize) {
+        if self.v[x] == self.v[y] {
+            self.pc += 2;
+        }
+    }
 
     fn op_6xkk(&mut self, x: usize, kk: u8) {
         self.v[x] = kk;
     }
 
-    fn op_7xkk(&mut self, x: usize, kk: u8) {}
+    fn op_7xkk(&mut self, x: usize, kk: u8) {
+        self.v[x] += kk;
+    }
 
-    fn op_8xy0(&mut self, x: usize, y: usize) {}
+    fn op_8xy0(&mut self, x: usize, y: usize) {
+        self.v[x] = self.v[y];
+    }
 
     fn op_8xy1(&mut self, x: usize, y: usize) {
         self.v[x] |= self.v[y];
@@ -103,13 +111,19 @@ impl Processor {
     }
 
     fn op_8xy4(&mut self, x: usize, y: usize) {
+        self.add_register(x, self.v[y]);
+    }
+
+    fn op_8xy5(&mut self, x: usize, y: usize) {
+        self.add_register(x, u8::MAX - self.v[y] + 1);
+    }
+
+    fn add_register(&mut self, x: usize, kk: u8) {
         let mut value = self.v[x] as u16;
-        value += self.v[y] as u16;
+        value += kk as u16;
         self.v[0xF] = (value > 0xFF) as u8;
         self.v[x] = value as u8;
     }
-
-    fn op_8xy5(&mut self, x: usize, y: usize) {}
 }
 
 #[cfg(test)]
