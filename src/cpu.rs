@@ -39,6 +39,7 @@ impl Cpu {
             0x82 => self.and(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x83 => self.xor(opargs.x_reg, self.reg_val(opargs.y_reg)),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
+            0x85 => self.sub(opargs.x_reg, self.reg_val(opargs.y_reg)),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
         };
     }
@@ -93,6 +94,10 @@ impl Cpu {
         value += constant as u16;
         self.registers[0xF] = (value > 0xFF) as u8;
         self.registers[dest_reg] = value as u8;
+    }
+
+    fn sub(&mut self, dest_reg: usize, constant: u8) {
+        self.add(dest_reg, u8::MAX - constant + 1);
     }
 }
 
@@ -304,5 +309,25 @@ mod tests {
         cpu.ld(0x1, 0x3C);
         cpu.execute(0x8013);
         assert_eq!(0x69, cpu.reg_val(0x0));
+    }
+
+    #[test]
+    fn sub_register_to_register_no_borrow() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 21);
+        cpu.ld(0x1, 7);
+        cpu.execute(0x8015);
+        assert_eq!(14, cpu.reg_val(0x0));
+        assert_eq!(1, cpu.reg_val(0xF));
+    }
+
+    #[test]
+    fn sub_register_to_register_borrow() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x1, 21);
+        cpu.ld(0x0, 7);
+        cpu.execute(0x8015);
+        assert_eq!(242, cpu.reg_val(0x0));
+        assert_eq!(0, cpu.reg_val(0xF));
     }
 }
