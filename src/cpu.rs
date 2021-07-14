@@ -18,7 +18,7 @@ impl Cpu {
         match opargs.opcode {
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
-            0x84 => self.add_r(opargs.x_reg, opargs.y_reg),
+            0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
         };
     }
@@ -36,10 +36,6 @@ impl Cpu {
         value += constant as u16;
         self.registers[0xF] = (value > 0xFF) as u8;
         self.registers[dest_reg] = value as u8;
-    }
-
-    fn add_r(&mut self, dest_reg: usize, source_reg: usize) {
-        self.add(dest_reg, self.reg_val(source_reg));
     }
 }
 
