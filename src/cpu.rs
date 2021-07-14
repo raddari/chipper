@@ -29,6 +29,7 @@ impl Cpu {
             0x01 => self.jp(opargs.address),
             0x02 => self.call(opargs.address),
             0x03 => self.se(opargs.x_reg, opargs.byte),
+            0x04 => self.sne(opargs.x_reg, opargs.byte),
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
             0x0E => self.ret(),
@@ -56,6 +57,12 @@ impl Cpu {
 
     fn se(&mut self, dest_reg: usize, constant: u8) {
         if constant == self.reg_val(dest_reg) {
+            self.pc += 2;
+        }
+    }
+
+    fn sne(&mut self, dest_reg: usize, constant: u8) {
+        if constant != self.reg_val(dest_reg) {
             self.pc += 2;
         }
     }
@@ -210,6 +217,22 @@ mod tests {
         let mut cpu = Cpu::new();
         cpu.ld(0x0, 32);
         cpu.execute(0x3021);
+        assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn sne_constant_skip() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 32);
+        cpu.execute(0x4021);
+        assert_eq!(0x204, cpu.pc);
+    }
+
+    #[test]
+    fn sne_constant_no_skip() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 32);
+        cpu.execute(0x4020);
         assert_eq!(0x202, cpu.pc);
     }
 }
