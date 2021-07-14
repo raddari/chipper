@@ -7,6 +7,12 @@ pub struct Cpu {
     memory: Memory,
 }
 
+impl Default for Cpu {
+    fn default() -> Self {
+        Cpu::new()
+    }
+}
+
 impl Cpu {
     pub fn new() -> Self {
         Cpu {
@@ -51,12 +57,6 @@ impl Cpu {
         value += constant as u16;
         self.registers[0xF] = (value > 0xFF) as u8;
         self.registers[dest_reg] = value as u8;
-    }
-}
-
-impl Default for Cpu {
-    fn default() -> Self {
-        Cpu::new()
     }
 }
 
