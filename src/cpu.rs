@@ -31,7 +31,10 @@ impl Cpu {
     }
 
     fn add(&mut self, dest_reg: usize, constant: u8) {
-        self.registers[dest_reg] += constant;
+        let mut value = self.registers[dest_reg] as u16;
+        value += constant as u16;
+        self.registers[0xF] = (value > 0xFF) as u8;
+        self.registers[dest_reg] = value as u8;
     }
 }
 
@@ -97,5 +100,14 @@ mod tests {
         cpu.ld(0x0, 1);
         cpu.execute(0x7001);
         assert_eq!(2, cpu.reg_val(0x0));
+    }
+
+    #[test]
+    fn add_constant_to_register_overflow() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 0xFF);
+        cpu.execute(0x7001);
+        assert_eq!(0, cpu.reg_val(0x0));
+        assert_eq!(1, cpu.reg_val(0xF));
     }
 }
