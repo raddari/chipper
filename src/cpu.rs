@@ -18,6 +18,7 @@ impl Cpu {
         match opargs.opcode {
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
+            0x84 => self.add_r(opargs.x_reg, opargs.y_reg),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
         };
     }
@@ -35,6 +36,10 @@ impl Cpu {
         value += constant as u16;
         self.registers[0xF] = (value > 0xFF) as u8;
         self.registers[dest_reg] = value as u8;
+    }
+
+    fn add_r(&mut self, dest_reg: usize, source_reg: usize) {
+        self.add(dest_reg, self.reg_val(source_reg));
     }
 }
 
@@ -108,6 +113,26 @@ mod tests {
         let mut cpu = Cpu::new();
         cpu.ld(0x0, 0xFF);
         cpu.execute(0x7001);
+        assert_eq!(0, cpu.reg_val(0x0));
+        assert_eq!(1, cpu.reg_val(0xF));
+    }
+
+    #[test]
+    fn add_register_to_register_normal() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 1);
+        cpu.ld(0x1, 2);
+        cpu.execute(0x8014);
+        assert_eq!(3, cpu.reg_val(0x0));
+        assert_eq!(0, cpu.reg_val(0xF));
+    }
+
+    #[test]
+    fn add_register_to_register_overflow() {
+        let mut cpu = Cpu::new();
+        cpu.ld(0x0, 0xFF);
+        cpu.ld(0x1, 1);
+        cpu.execute(0x8014);
         assert_eq!(0, cpu.reg_val(0x0));
         assert_eq!(1, cpu.reg_val(0xF));
     }
