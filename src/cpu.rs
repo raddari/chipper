@@ -1,7 +1,10 @@
+use crate::memory::Memory;
+
 #[derive(Debug)]
 pub struct Cpu {
     pc: u16,
     registers: [u8; 16],
+    memory: Memory,
 }
 
 impl Cpu {
@@ -9,6 +12,7 @@ impl Cpu {
         Cpu {
             pc: 0x200,
             registers: [0; 16],
+            memory: Memory::new(),
         }
     }
 
@@ -17,6 +21,7 @@ impl Cpu {
         let opargs = OpArgs::new(instruction);
         match opargs.opcode {
             0x01 => self.jp(opargs.address),
+            0x02 => self.call(opargs.address),
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
@@ -29,6 +34,11 @@ impl Cpu {
     }
 
     fn jp(&mut self, address: u16) {
+        self.pc = address;
+    }
+
+    fn call(&mut self, address: u16) {
+        self.memory.callstack_push(self.pc);
         self.pc = address;
     }
 
@@ -142,6 +152,20 @@ mod tests {
     fn jump_sets_pc() {
         let mut cpu = Cpu::new();
         cpu.execute(0x1BCD);
+        assert_eq!(0xBCD, cpu.pc);
+    }
+
+    #[test]
+    fn call_pushes_pc() {
+        let mut cpu = Cpu::new();
+        cpu.execute(0x2BCD);
+        assert_eq!(0x202, cpu.memory.callstack_peek().unwrap());
+    }
+
+    #[test]
+    fn call_sets_pc() {
+        let mut cpu = Cpu::new();
+        cpu.execute(0x2BCD);
         assert_eq!(0xBCD, cpu.pc);
     }
 }
