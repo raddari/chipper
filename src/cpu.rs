@@ -6,7 +6,10 @@ pub struct Cpu {
 
 impl Cpu {
     pub fn new() -> Cpu {
-        Cpu { pc: 0x200, registers: [0; 16] }
+        Cpu {
+            pc: 0x200,
+            registers: [0; 16],
+        }
     }
 
     pub fn execute(&mut self, instruction: u16) {
