@@ -126,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn load_constant_to_register() {
+    fn ld_constant_to_register() {
         let mut cpu = Cpu::new();
         cpu.execute(0x6075);
         assert_eq!(0x75, cpu.reg_val(0x0));
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn jump_sets_pc() {
+    fn jp_sets_pc() {
         let mut cpu = Cpu::new();
         cpu.execute(0x1ABC);
         assert_eq!(0xABC, cpu.pc);
