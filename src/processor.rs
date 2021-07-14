@@ -1,21 +1,21 @@
 use crate::memory::Memory;
 
 #[derive(Debug)]
-pub struct Cpu {
+pub struct Processor {
     pc: u16,
     registers: [u8; 16],
     memory: Memory,
 }
 
-impl Default for Cpu {
+impl Default for Processor {
     fn default() -> Self {
-        Cpu::new()
+        Processor::new()
     }
 }
 
-impl Cpu {
+impl Processor {
     pub fn new() -> Self {
-        Cpu {
+        Processor {
             pc: 0x200,
             registers: [0; 16],
             memory: Memory::new(),
@@ -134,27 +134,27 @@ mod tests {
 
     #[test]
     fn pc_starts_at_0x200() {
-        let cpu = Cpu::new();
+        let cpu = Processor::new();
         assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
     fn execute_normally_increments_pc() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.execute(0x6000);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn ld_constant_to_register() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.execute(0x6075);
         assert_eq!(0x75, cpu.reg_val(0x0));
     }
 
     #[test]
     fn add_constant_to_register_normal() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 1);
         cpu.execute(0x7001);
         assert_eq!(2, cpu.reg_val(0x0));
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn add_constant_to_register_overflow() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 0xFF);
         cpu.execute(0x7001);
         assert_eq!(0, cpu.reg_val(0x0));
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn add_register_to_register_normal() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 1);
         cpu.ld(0x1, 2);
         cpu.execute(0x8014);
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn add_register_to_register_overflow() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 0xFF);
         cpu.ld(0x1, 1);
         cpu.execute(0x8014);
@@ -192,21 +192,21 @@ mod tests {
 
     #[test]
     fn jp_sets_pc() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.execute(0x1ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn call_sets_pc() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn ret_pops_pc() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.execute(0x2ABC);
         cpu.execute(0x00EE);
         assert_eq!(0x202, cpu.pc);
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn call_ret_nested() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.execute(0x2678);
         cpu.execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn se_constant_skip() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 32);
         cpu.execute(0x3020);
         assert_eq!(0x204, cpu.pc);
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn se_constant_no_skip() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 32);
         cpu.execute(0x3021);
         assert_eq!(0x202, cpu.pc);
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn sne_constant_skip() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 32);
         cpu.execute(0x4021);
         assert_eq!(0x204, cpu.pc);
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn sne_constant_no_skip() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 32);
         cpu.execute(0x4020);
         assert_eq!(0x202, cpu.pc);
@@ -260,7 +260,7 @@ mod tests {
 
     #[test]
     fn se_register_skip() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 32);
         cpu.ld(0x1, 32);
         cpu.execute(0x5010);
@@ -269,7 +269,7 @@ mod tests {
 
     #[test]
     fn se_register_no_skip() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 32);
         cpu.ld(0x1, 33);
         cpu.execute(0x5010);
@@ -278,7 +278,7 @@ mod tests {
 
     #[test]
     fn ld_register_to_register() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 32);
         cpu.execute(0x8100);
         assert_eq!(32, cpu.reg_val(0x1));
@@ -286,7 +286,7 @@ mod tests {
 
     #[test]
     fn or_register_to_register() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 0x55);
         cpu.ld(0x1, 0x3C);
         cpu.execute(0x8011);
@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn and_register_to_register() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 0x55);
         cpu.ld(0x1, 0x3C);
         cpu.execute(0x8012);
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn xor_register_to_register() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 0x55);
         cpu.ld(0x1, 0x3C);
         cpu.execute(0x8013);
@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn sub_register_to_register_no_borrow() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x0, 21);
         cpu.ld(0x1, 7);
         cpu.execute(0x8015);
@@ -323,7 +323,7 @@ mod tests {
 
     #[test]
     fn sub_register_to_register_borrow() {
-        let mut cpu = Cpu::new();
+        let mut cpu = Processor::new();
         cpu.ld(0x1, 21);
         cpu.ld(0x0, 7);
         cpu.execute(0x8015);
