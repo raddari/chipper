@@ -27,11 +27,11 @@ impl Cpu {
         let opargs = OpArgs::new(instruction);
         match opargs.opcode {
             0x01 => self.jp(opargs.address),
-            0x0E => self.ret(),
             0x02 => self.call(opargs.address),
             0x03 => self.se(opargs.x_reg, opargs.byte),
             0x06 => self.ld(opargs.x_reg, opargs.byte),
             0x07 => self.add(opargs.x_reg, opargs.byte),
+            0x0E => self.ret(),
             0x84 => self.add(opargs.x_reg, self.reg_val(opargs.y_reg)),
             _ => panic!("No matching opcode for {:02x}", opargs.opcode),
         };
