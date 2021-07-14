@@ -7,5 +7,7 @@ description = "Chip8 interpreter and debugger!"
 repository = "https://github.com/raddari/chipper"
 license = "MIT"
 
+[dev-dependencies]
+pretty_assertions = "0.7.*"
 
 [dependencies]

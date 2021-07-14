@@ -94,6 +94,7 @@ impl OpArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn pc_starts_at_0x200() {
