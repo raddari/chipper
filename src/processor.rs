@@ -49,6 +49,7 @@ impl Processor {
             (0x8, _, _, 0x5) => self.op_8xy5(x, y),
             (0x8, _, _, 0x6) => self.op_8xy6(x, y),
             (0x8, _, _, 0x7) => self.op_8xy7(x, y),
+            (0x8, _, _, 0xE) => self.op_8xye(x, y),
             _ => (),
         };
     }
@@ -132,6 +133,11 @@ impl Processor {
 
     fn op_8xy7(&mut self, x: usize, y: usize) {
         self.sub_with_underflow(x, y, self.v[x]);
+    }
+
+    fn op_8xye(&mut self, x: usize, _y: usize) {
+        self.set_flag((self.v[x] & 0x80) == 0x80);
+        self.v[x] <<= 1;
     }
 
     fn set_flag(&mut self, condition: bool) {
@@ -404,5 +410,23 @@ mod tests {
         cpu.execute(0x8017);
         assert_eq!(242, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
+    }
+
+    #[test]
+    fn sll_no_overflow() {
+        let mut cpu = Processor::new();
+        cpu.load_constant(0x0, 0x7F);
+        cpu.execute(0x800E);
+        assert_eq!(0xFE, cpu.v[0x0]);
+        assert_eq!(0, cpu.v[0xF]);
+    }
+
+    #[test]
+    fn sll_overflow() {
+        let mut cpu = Processor::new();
+        cpu.load_constant(0x0, 0xFF);
+        cpu.execute(0x800E);
+        assert_eq!(0xFE, cpu.v[0x0]);
+        assert_eq!(1, cpu.v[0xF]);
     }
 }
