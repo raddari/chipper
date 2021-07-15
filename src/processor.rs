@@ -128,7 +128,7 @@ impl Processor {
 
     fn op_8xy6(&mut self, x: usize, _y: usize) {
         self.set_flag((self.v[x] & 0x1) == 1);
-        self.v[x] /= 2;
+        self.v[x] >>= 1;
     }
 
     fn op_8xy7(&mut self, x: usize, y: usize) {
