@@ -1,4 +1,6 @@
 use crate::memory::Memory;
+use rand::prelude::{SeedableRng, StdRng};
+use rand::RngCore;
 
 #[derive(Debug)]
 pub struct Processor {
@@ -6,6 +8,7 @@ pub struct Processor {
     ri: u16,
     v: [u8; 16],
     memory: Memory,
+    random: StdRng,
 }
 
 impl Default for Processor {
@@ -22,6 +25,7 @@ impl Processor {
             ri: 0,
             v: [0; 16],
             memory: Memory::new(),
+            random: StdRng::from_entropy(),
         }
     }
 
@@ -56,6 +60,7 @@ impl Processor {
             (0x9, _, _, 0x0) => self.op_9xy0(x, y),
             (0xA, _, _, _) => self.op_Annn(nnn),
             (0xB, _, _, _) => self.op_Bnnn(nnn),
+            (0xC, _, _, _) => self.op_Cxkk(x, kk),
             _ => (),
         };
     }
@@ -158,6 +163,11 @@ impl Processor {
 
     fn op_Bnnn(&mut self, address: u16) {
         self.pc = address + self.v[0x0] as u16;
+    }
+
+    fn op_Cxkk(&mut self, x: usize, kk: u8) {
+        let value = (self.random.next_u32() as u8) & kk;
+        self.v[x] = value;
     }
 
     fn set_flag(&mut self, condition: bool) {
@@ -481,5 +491,29 @@ mod tests {
         cpu.load_constant(0x0, 2);
         cpu.execute(0xBABC);
         assert_eq!(0xABE, cpu.pc);
+    }
+
+    #[test]
+    fn rnd_supplied_full_mask() {
+        let mut cpu = Processor::new();
+        cpu.random = StdRng::seed_from_u64(0x13375EED);
+        cpu.execute(0xC0FF);
+        assert_eq!(173, cpu.v[0x0]);
+    }
+
+    #[test]
+    fn rnd_supplied_partial_mask() {
+        let mut cpu = Processor::new();
+        cpu.random = StdRng::seed_from_u64(0x13375EED);
+        cpu.execute(0xC07E);
+        assert_eq!(44, cpu.v[0x0]);
+    }
+
+    #[test]
+    fn rnd_supplied_no_mask() {
+        let mut cpu = Processor::new();
+        cpu.random = StdRng::seed_from_u64(0x13375EED);
+        cpu.execute(0xC000);
+        assert_eq!(0, cpu.v[0x0]);
     }
 }
