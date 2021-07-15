@@ -1,4 +1,5 @@
 use crate::memory::Memory;
+use crate::{CHIP8_VRAM, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
 
@@ -7,6 +8,7 @@ pub struct Processor {
     pc: u16,
     ri: u16,
     v: [u8; 16],
+    vram: [u8; CHIP8_VRAM],
     memory: Memory,
     random: StdRng,
 }
@@ -24,6 +26,7 @@ impl Processor {
             pc: 0x200,
             ri: 0,
             v: [0; 16],
+            vram: [0; CHIP8_VRAM],
             memory: Memory::new(),
             random: StdRng::from_entropy(),
         }
@@ -35,7 +38,7 @@ impl Processor {
         let nibbles = Self::unpack_nibbles(instruction);
         let x = nibbles.1 as usize;
         let y = nibbles.2 as usize;
-        let _n = nibbles.3 as usize;
+        let n = nibbles.3 as usize;
         let nnn = (instruction & 0x0FFF) as u16;
         let kk = (instruction & 0x00FF) as u8;
 
@@ -61,6 +64,7 @@ impl Processor {
             (0xA, _, _, _) => self.op_Annn(nnn),
             (0xB, _, _, _) => self.op_Bnnn(nnn),
             (0xC, _, _, _) => self.op_Cxkk(x, kk),
+            (0xD, _, _, _) => self.op_Dxyn(x, y, n),
             _ => (),
         };
     }
@@ -168,6 +172,16 @@ impl Processor {
     fn op_Cxkk(&mut self, x: usize, kk: u8) {
         let value = (self.random.next_u32() as u8) & kk;
         self.v[x] = value;
+    }
+
+    fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) {
+        let sprite = self.memory.load(self.ri as usize, n);
+        let flat = Self::project(self.v[x] as usize, self.v[y] as usize);
+        self.vram[flat..flat + n].copy_from_slice(sprite);
+    }
+
+    fn project(x: usize, y: usize) -> usize {
+        y * CHIP8_WIDTH + x
     }
 
     fn overflow_flag(&mut self, condition: bool) {
@@ -505,5 +519,16 @@ mod tests {
         cpu.random = StdRng::seed_from_u64(0x13375EED);
         cpu.execute(0xC000);
         assert_eq!(0, cpu.v[0x0]);
+    }
+
+    #[test]
+    fn drw_two_byte_sprite_no_overlap() {
+        let mut cpu = Processor::new();
+        let bytes = &[0x9A, 0x3C];
+        cpu.memory.store(0x100, bytes);
+        cpu.ri = 0x100;
+        cpu.v[0x0] = 2;
+        cpu.execute(0xD002);
+        assert_eq!(bytes, &cpu.vram[130..132]);
     }
 }
