@@ -50,6 +50,7 @@ impl Processor {
             (0x8, _, _, 0x6) => self.op_8xy6(x, y),
             (0x8, _, _, 0x7) => self.op_8xy7(x, y),
             (0x8, _, _, 0xE) => self.op_8xye(x, y),
+            (0x9, _, _, 0x0) => self.op_9xy0(x, y),
             _ => (),
         };
     }
@@ -138,6 +139,12 @@ impl Processor {
     fn op_8xye(&mut self, x: usize, _y: usize) {
         self.set_flag((self.v[x] & 0x80) == 0x80);
         self.v[x] <<= 1;
+    }
+
+    fn op_9xy0(&mut self, x: usize, y: usize) {
+        if self.v[x] != self.v[y] {
+            self.pc += 2;
+        }
     }
 
     fn set_flag(&mut self, condition: bool) {
@@ -428,5 +435,23 @@ mod tests {
         cpu.execute(0x800E);
         assert_eq!(0xFE, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
+    }
+
+    #[test]
+    fn sne_register_skip() {
+        let mut cpu = Processor::new();
+        cpu.load_constant(0x0, 1);
+        cpu.load_constant(0x1, 2);
+        cpu.execute(0x9010);
+        assert_eq!(0x204, cpu.pc);
+    }
+
+    #[test]
+    fn sne_register_no_skip() {
+        let mut cpu = Processor::new();
+        cpu.load_constant(0x0, 1);
+        cpu.load_constant(0x1, 1);
+        cpu.execute(0x9010);
+        assert_eq!(0x202, cpu.pc);
     }
 }
