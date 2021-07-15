@@ -1,6 +1,8 @@
+use crate::CHIP8_RAM;
+
 #[derive(Debug)]
 pub struct Memory {
-    ram: [u8; 4096],
+    ram: [u8; CHIP8_RAM],
     callstack: Vec<u16>,
 }
 
@@ -13,7 +15,7 @@ impl Default for Memory {
 impl Memory {
     pub fn new() -> Self {
         Memory {
-            ram: [0; 4096],
+            ram: [0; CHIP8_RAM],
             callstack: vec![0; 16],
         }
     }
