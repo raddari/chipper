@@ -3,6 +3,7 @@ use crate::memory::Memory;
 #[derive(Debug)]
 pub struct Processor {
     pc: u16,
+    ri: u16,
     v: [u8; 16],
     memory: Memory,
 }
@@ -17,6 +18,7 @@ impl Processor {
     pub fn new() -> Self {
         Processor {
             pc: 0x200,
+            ri: 0,
             v: [0; 16],
             memory: Memory::new(),
         }
@@ -49,8 +51,9 @@ impl Processor {
             (0x8, _, _, 0x5) => self.op_8xy5(x, y),
             (0x8, _, _, 0x6) => self.op_8xy6(x, y),
             (0x8, _, _, 0x7) => self.op_8xy7(x, y),
-            (0x8, _, _, 0xE) => self.op_8xye(x, y),
+            (0x8, _, _, 0xE) => self.op_8xyE(x, y),
             (0x9, _, _, 0x0) => self.op_9xy0(x, y),
+            (0xA, _, _, _) => self.op_Annn(nnn),
             _ => (),
         };
     }
@@ -136,7 +139,8 @@ impl Processor {
         self.sub_with_underflow(x, y, self.v[x]);
     }
 
-    fn op_8xye(&mut self, x: usize, _y: usize) {
+    #[allow(non_snake_case)]
+    fn op_8xyE(&mut self, x: usize, _y: usize) {
         self.set_flag((self.v[x] & 0x80) == 0x80);
         self.v[x] <<= 1;
     }
@@ -145,6 +149,11 @@ impl Processor {
         if self.v[x] != self.v[y] {
             self.pc += 2;
         }
+    }
+
+    #[allow(non_snake_case)]
+    fn op_Annn(&mut self, address: u16) {
+        self.ri = address;
     }
 
     fn set_flag(&mut self, condition: bool) {
@@ -453,5 +462,12 @@ mod tests {
         cpu.load_constant(0x1, 1);
         cpu.execute(0x9010);
         assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn ld_address_register() {
+        let mut cpu = Processor::new();
+        cpu.execute(0xAABC);
+        assert_eq!(0xABC, cpu.ri);
     }
 }
