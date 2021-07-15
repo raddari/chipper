@@ -138,7 +138,7 @@ impl Processor {
     }
 
     fn op_8xy6(&mut self, x: usize, _y: usize) {
-        self.set_flag((self.v[x] & 0x1) == 1);
+        self.overflow_flag((self.v[x] & 0x1) == 1);
         self.v[x] >>= 1;
     }
 
@@ -147,7 +147,7 @@ impl Processor {
     }
 
     fn op_8xyE(&mut self, x: usize, _y: usize) {
-        self.set_flag((self.v[x] & 0x80) == 0x80);
+        self.overflow_flag((self.v[x] & 0x80) == 0x80);
         self.v[x] <<= 1;
     }
 
@@ -170,7 +170,7 @@ impl Processor {
         self.v[x] = value;
     }
 
-    fn set_flag(&mut self, condition: bool) {
+    fn overflow_flag(&mut self, condition: bool) {
         self.v[0xF] = condition as u8;
     }
 
@@ -185,7 +185,7 @@ impl Processor {
     fn add_with_overflow_dest(&mut self, dest: usize, src: usize, kk: u8) {
         let mut value = self.v[src] as u16;
         value += kk as u16;
-        self.set_flag(value > 0xFF);
+        self.overflow_flag(value > 0xFF);
         self.v[dest] = value as u8;
     }
 }
