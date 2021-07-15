@@ -55,6 +55,7 @@ impl Processor {
             (0x8, _, _, 0xE) => self.op_8xyE(x, y),
             (0x9, _, _, 0x0) => self.op_9xy0(x, y),
             (0xA, _, _, _) => self.op_Annn(nnn),
+            (0xB, _, _, _) => self.op_Bnnn(nnn),
             _ => (),
         };
     }
@@ -153,6 +154,10 @@ impl Processor {
 
     fn op_Annn(&mut self, address: u16) {
         self.ri = address;
+    }
+
+    fn op_Bnnn(&mut self, address: u16) {
+        self.pc = address + self.v[0x0] as u16;
     }
 
     fn set_flag(&mut self, condition: bool) {
@@ -468,5 +473,13 @@ mod tests {
         let mut cpu = Processor::new();
         cpu.execute(0xAABC);
         assert_eq!(0xABC, cpu.ri);
+    }
+
+    #[test]
+    fn jp_address_offset() {
+        let mut cpu = Processor::new();
+        cpu.load_constant(0x0, 2);
+        cpu.execute(0xBABC);
+        assert_eq!(0xABE, cpu.pc);
     }
 }
