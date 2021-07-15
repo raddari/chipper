@@ -48,6 +48,7 @@ impl Processor {
             (0x8, _, _, 0x4) => self.op_8xy4(x, y),
             (0x8, _, _, 0x5) => self.op_8xy5(x, y),
             (0x8, _, _, 0x6) => self.op_8xy6(x, y),
+            (0x8, _, _, 0x7) => self.op_8xy7(x, y),
             _ => (),
         };
     }
@@ -121,7 +122,7 @@ impl Processor {
     }
 
     fn op_8xy5(&mut self, x: usize, y: usize) {
-        self.add_with_overflow(x, u8::MAX - self.v[y] + 1);
+        self.sub_with_underflow(x, x, self.v[y]);
     }
 
     fn op_8xy6(&mut self, x: usize, _y: usize) {
@@ -129,15 +130,27 @@ impl Processor {
         self.v[x] /= 2;
     }
 
+    fn op_8xy7(&mut self, x: usize, y: usize) {
+        self.sub_with_underflow(x, y, self.v[x]);
+    }
+
     fn set_flag(&mut self, condition: bool) {
         self.v[0xF] = condition as u8;
     }
 
+    fn sub_with_underflow(&mut self, dest: usize, src: usize, kk: u8) {
+        self.add_with_overflow_dest(dest, src, u8::MAX - kk + 1);
+    }
+
     fn add_with_overflow(&mut self, x: usize, kk: u8) {
-        let mut value = self.v[x] as u16;
+        self.add_with_overflow_dest(x, x, kk);
+    }
+
+    fn add_with_overflow_dest(&mut self, dest: usize, src: usize, kk: u8) {
+        let mut value = self.v[src] as u16;
         value += kk as u16;
         self.set_flag(value > 0xFF);
-        self.v[x] = value as u8;
+        self.v[dest] = value as u8;
     }
 }
 
@@ -371,5 +384,25 @@ mod tests {
         cpu.execute(0x8006);
         assert_eq!(15, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
+    }
+
+    #[test]
+    fn subn_no_borrow() {
+        let mut cpu = Processor::new();
+        cpu.load_constant(0x0, 7);
+        cpu.load_constant(0x1, 21);
+        cpu.execute(0x8017);
+        assert_eq!(14, cpu.v[0x0]);
+        assert_eq!(1, cpu.v[0xF]);
+    }
+
+    #[test]
+    fn subn_borrow() {
+        let mut cpu = Processor::new();
+        cpu.load_constant(0x0, 21);
+        cpu.load_constant(0x1, 7);
+        cpu.execute(0x8017);
+        assert_eq!(242, cpu.v[0x0]);
+        assert_eq!(0, cpu.v[0xF]);
     }
 }
