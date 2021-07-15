@@ -14,6 +14,7 @@ impl Default for Processor {
     }
 }
 
+#[allow(non_snake_case)]
 impl Processor {
     pub fn new() -> Self {
         Processor {
@@ -139,7 +140,6 @@ impl Processor {
         self.sub_with_underflow(x, y, self.v[x]);
     }
 
-    #[allow(non_snake_case)]
     fn op_8xyE(&mut self, x: usize, _y: usize) {
         self.set_flag((self.v[x] & 0x80) == 0x80);
         self.v[x] <<= 1;
@@ -151,7 +151,6 @@ impl Processor {
         }
     }
 
-    #[allow(non_snake_case)]
     fn op_Annn(&mut self, address: u16) {
         self.ri = address;
     }
