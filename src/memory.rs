@@ -12,7 +12,7 @@ impl Default for Memory {
 impl Memory {
     pub fn new() -> Self {
         Memory {
-            callstack: Vec::new(),
+            callstack: vec![0; 16],
         }
     }
 
