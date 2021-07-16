@@ -43,7 +43,7 @@ impl Cpu {
         let kk = (instruction & 0x00FF) as u8;
 
         match nibbles {
-            (0x0, 0x0, 0xE, 0xE) => self.op_00ee(),
+            (0x0, 0x0, 0xE, 0xE) => self.op_00EE(),
             (0x1, _, _, _) => self.op_1nnn(nnn),
             (0x2, _, _, _) => self.op_2nnn(nnn),
             (0x3, _, _, _) => self.op_3xkk(x, kk),
@@ -82,7 +82,7 @@ impl Cpu {
         self.pc = address;
     }
 
-    fn op_00ee(&mut self) {
+    fn op_00EE(&mut self) {
         self.pc = self.memory.callstack_pop().unwrap();
     }
 
@@ -176,11 +176,11 @@ impl Cpu {
 
     fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) {
         let sprite = self.memory.load(self.ri as usize, n);
-        let flat = Self::project(self.v[x] as usize, self.v[y] as usize);
+        let flat = Self::flatten(self.v[x] as usize, self.v[y] as usize);
         self.vram[flat..flat + n].copy_from_slice(sprite);
     }
 
-    fn project(x: usize, y: usize) -> usize {
+    fn flatten(x: usize, y: usize) -> usize {
         y * CHIP8_WIDTH + x
     }
 
@@ -530,5 +530,20 @@ mod tests {
         cpu.v[0x0] = 2;
         cpu.execute(0xD002);
         assert_eq!(bytes, &cpu.vram[130..132]);
+        assert_eq!(0, cpu.v[0xF]);
+    }
+
+    #[test]
+    fn drw_two_byte_sprite_overlap() {
+        let mut cpu = Cpu::new();
+        let bytes = &[0x9A, 0x3C];
+        cpu.memory.store(0x100, bytes);
+        cpu.ri = 0x100;
+        cpu.v[0x0] = 2;
+        cpu.execute(0xD001);
+        cpu.ri = 0x101;
+        cpu.execute(0xD001);
+        assert_eq!(&[0xA6], &cpu.vram[130..131]);
+        assert_eq!(1, cpu.v[0xF]);
     }
 }
