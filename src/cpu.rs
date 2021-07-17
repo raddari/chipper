@@ -1,4 +1,4 @@
-use crate::memory::Memory;
+use crate::memory::{Memory, Ram};
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
@@ -9,7 +9,7 @@ pub struct Cpu {
     ri: u16,
     v: [u8; 16],
     vbuffer: [u8; CHIP8_VBUFFER],
-    memory: Memory,
+    memory: Ram,
     random: StdRng,
 }
 
@@ -27,7 +27,7 @@ impl Cpu {
             ri: 0,
             v: [0; 16],
             vbuffer: [0; CHIP8_VBUFFER],
-            memory: Memory::new(),
+            memory: Ram::new(),
             random: StdRng::from_entropy(),
         }
     }
