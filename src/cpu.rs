@@ -43,6 +43,7 @@ impl Cpu {
         let kk = (instruction & 0x00FF) as u8;
 
         match nibbles {
+            (0x0, 0x0, 0xE, 0x0) => self.op_00E0(),
             (0x0, 0x0, 0xE, 0xE) => self.op_00EE(),
             (0x1, _, _, _) => self.op_1nnn(nnn),
             (0x2, _, _, _) => self.op_2nnn(nnn),
@@ -78,12 +79,16 @@ impl Cpu {
         )
     }
 
-    fn op_1nnn(&mut self, address: u16) {
-        self.pc = address;
+    fn op_00E0(&mut self) {
+        self.vbuffer.fill(0);
     }
 
     fn op_00EE(&mut self) {
         self.pc = self.memory.callstack_pop().unwrap();
+    }
+
+    fn op_1nnn(&mut self, address: u16) {
+        self.pc = address;
     }
 
     fn op_2nnn(&mut self, address: u16) {
@@ -560,5 +565,17 @@ mod tests {
         cpu.execute(0xD001);
         assert_eq!(&[0xA6], &cpu.vbuffer[130..131]);
         assert_eq!(1, cpu.v[0xF]);
+    }
+
+    #[test]
+    fn cls_empties_vbuffer() {
+        let mut cpu = Cpu::new();
+        let bytes = &[0x9A, 0x3C];
+        cpu.memory.store(0x100, bytes);
+        cpu.ri = 0x100;
+        cpu.v[0x0] = 2;
+        cpu.execute(0xD002);
+        cpu.execute(0x00E0);
+        assert_eq!(&[0x0, 0x0], &cpu.vbuffer[130..132]);
     }
 }
