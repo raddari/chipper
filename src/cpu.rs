@@ -181,7 +181,7 @@ impl Cpu {
         self.overflow_flag(collision);
     }
 
-    fn draw_and_check_collision(&mut self, index: usize, sprite: &Vec<u8>) -> bool {
+    fn draw_and_check_collision(&mut self, index: usize, sprite: &[u8]) -> bool {
         let mut collision = false;
         for (i, byte) in self.vram[index..index + sprite.len()]
             .iter_mut()
