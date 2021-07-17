@@ -20,8 +20,8 @@ impl Memory {
         }
     }
 
-    pub fn load(&self, offset: usize, size: usize) -> &[u8] {
-        &self.ram[offset..offset + size]
+    pub fn load(&self, offset: usize, size: usize) -> Vec<u8> {
+        self.ram[offset..offset + size].to_vec()
     }
 
     pub fn store(&mut self, offset: usize, bytes: &[u8]) {
