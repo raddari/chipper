@@ -45,6 +45,7 @@ impl Cpu {
         match nibbles {
             (0x0, 0x0, 0xE, 0x0) => self.op_00E0(),
             (0x0, 0x0, 0xE, 0xE) => self.op_00EE(),
+            (0x0, _, _, _) => self.op_0nnn(nnn),
             (0x1, _, _, _) => self.op_1nnn(nnn),
             (0x2, _, _, _) => self.op_2nnn(nnn),
             (0x3, _, _, _) => self.op_3xkk(x, kk),
@@ -85,6 +86,11 @@ impl Cpu {
 
     fn op_00EE(&mut self) {
         self.pc = self.memory.callstack_pop().unwrap();
+    }
+
+    fn op_0nnn(&self, _address: u16) {
+        // No implementation yet.
+        // Possible: use to talk to debugger from the ROM?
     }
 
     fn op_1nnn(&mut self, address: u16) {
