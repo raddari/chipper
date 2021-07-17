@@ -176,11 +176,26 @@ impl Cpu {
 
     fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) {
         let sprite = self.memory.load(self.ri as usize, n);
-        let flat = Self::flatten(self.v[x] as usize, self.v[y] as usize);
-        self.vram[flat..flat + n].copy_from_slice(sprite);
+        let flat = Self::flatten_index(self.v[x] as usize, self.v[y] as usize);
+        let collision = self.draw_and_check_collision(flat, &sprite);
+        self.overflow_flag(collision);
     }
 
-    fn flatten(x: usize, y: usize) -> usize {
+    fn draw_and_check_collision(&mut self, index: usize, sprite: &Vec<u8>) -> bool {
+        let mut collision = false;
+        for (i, byte) in self.vram[index..index + sprite.len()]
+            .iter_mut()
+            .enumerate()
+        {
+            *byte ^= sprite[i];
+            if *byte != sprite[i] {
+                collision = true;
+            }
+        }
+        collision
+    }
+
+    fn flatten_index(x: usize, y: usize) -> usize {
         y * CHIP8_WIDTH + x
     }
 
