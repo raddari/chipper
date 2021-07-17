@@ -1,5 +1,5 @@
 use crate::memory::Memory;
-use crate::{CHIP8_VRAM, CHIP8_WIDTH};
+use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
 
@@ -8,7 +8,7 @@ pub struct Cpu {
     pc: u16,
     ri: u16,
     v: [u8; 16],
-    vram: [u8; CHIP8_VRAM],
+    vbuffer: [u8; CHIP8_VBUFFER],
     memory: Memory,
     random: StdRng,
 }
@@ -26,7 +26,7 @@ impl Cpu {
             pc: 0x200,
             ri: 0,
             v: [0; 16],
-            vram: [0; CHIP8_VRAM],
+            vbuffer: [0; CHIP8_VBUFFER],
             memory: Memory::new(),
             random: StdRng::from_entropy(),
         }
@@ -183,7 +183,7 @@ impl Cpu {
 
     fn draw_and_check_collision(&mut self, index: usize, sprite: &[u8]) -> bool {
         let mut collision = false;
-        for (i, byte) in self.vram[index..index + sprite.len()]
+        for (i, byte) in self.vbuffer[index..index + sprite.len()]
             .iter_mut()
             .enumerate()
         {
@@ -544,7 +544,7 @@ mod tests {
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.execute(0xD002);
-        assert_eq!(bytes, &cpu.vram[130..132]);
+        assert_eq!(bytes, &cpu.vbuffer[130..132]);
         assert_eq!(0, cpu.v[0xF]);
     }
 
@@ -558,7 +558,7 @@ mod tests {
         cpu.execute(0xD001);
         cpu.ri = 0x101;
         cpu.execute(0xD001);
-        assert_eq!(&[0xA6], &cpu.vram[130..131]);
+        assert_eq!(&[0xA6], &cpu.vbuffer[130..131]);
         assert_eq!(1, cpu.v[0xF]);
     }
 }
