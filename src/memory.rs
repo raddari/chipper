@@ -1,31 +1,41 @@
 use crate::CHIP8_RAM;
 
+pub trait Memory<T>
+where
+    T: Copy,
+{
+    fn load(&self, offset: usize, size: usize) -> Vec<T>;
+    fn store(&mut self, offset: usize, data: &[T]);
+}
+
 #[derive(Debug)]
-pub struct Memory {
-    ram: [u8; CHIP8_RAM],
+pub struct Ram {
+    bytes: [u8; CHIP8_RAM],
     callstack: Vec<u16>,
 }
 
-impl Default for Memory {
+impl Default for Ram {
     fn default() -> Self {
-        Memory::new()
+        Ram::new()
     }
 }
 
-impl Memory {
+impl Memory<u8> for Ram {
+    fn load(&self, offset: usize, size: usize) -> Vec<u8> {
+        self.bytes[offset..offset + size].to_vec()
+    }
+
+    fn store(&mut self, offset: usize, data: &[u8]) {
+        self.bytes[offset..offset + data.len()].copy_from_slice(data);
+    }
+}
+
+impl Ram {
     pub fn new() -> Self {
-        Memory {
-            ram: [0; CHIP8_RAM],
+        Ram {
+            bytes: [0; CHIP8_RAM],
             callstack: vec![0; 16],
         }
-    }
-
-    pub fn load(&self, offset: usize, size: usize) -> Vec<u8> {
-        self.ram[offset..offset + size].to_vec()
-    }
-
-    pub fn store(&mut self, offset: usize, bytes: &[u8]) {
-        self.ram[offset..offset + bytes.len()].copy_from_slice(bytes);
     }
 
     pub fn callstack_empty(&self) -> bool {
