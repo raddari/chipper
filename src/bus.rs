@@ -1,10 +1,8 @@
-use crate::cpu::Cpu;
 use crate::memory::Memory;
 
 pub type ByteMemory = dyn Memory<u8>;
 
 pub struct Bus {
-    cpu: Option<Cpu>,
     memory: Option<Box<ByteMemory>>,
 }
 
@@ -19,18 +17,9 @@ impl Memory<u8> for Bus {
 }
 
 impl Bus {
-    pub fn new_uninit() -> Box<Self> {
-        Box::from(Bus {
-            cpu: None,
-            memory: None,
-        })
-    }
-
-    pub fn register_cpu(&mut self, cpu: Cpu) {
-        self.cpu = Option::from(cpu);
-    }
-
-    pub fn register_memory(&mut self, memory: Box<ByteMemory>) {
-        self.memory = Option::from(memory);
+    pub fn new(memory: Box<ByteMemory>) -> Self {
+        Bus {
+            memory: Option::from(memory),
+        }
     }
 }
