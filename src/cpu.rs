@@ -1,15 +1,12 @@
-use crate::memory::{Memory, Ram};
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
 
-#[derive(Debug)]
 pub struct Cpu {
     pc: u16,
     ri: u16,
     v: [u8; 16],
     vbuffer: [u8; CHIP8_VBUFFER],
-    memory: Ram,
     random: StdRng,
 }
 
@@ -27,7 +24,6 @@ impl Cpu {
             ri: 0,
             v: [0; 16],
             vbuffer: [0; CHIP8_VBUFFER],
-            memory: Ram::new(),
             random: StdRng::from_entropy(),
         }
     }
@@ -85,7 +81,7 @@ impl Cpu {
     }
 
     fn op_00EE(&mut self) {
-        self.pc = self.memory.callstack_pop().unwrap();
+        //self.pc = self.bus.callstack_pop().unwrap();
     }
 
     fn op_0nnn(&self, _address: u16) {
@@ -98,7 +94,7 @@ impl Cpu {
     }
 
     fn op_2nnn(&mut self, address: u16) {
-        self.memory.callstack_push(self.pc);
+        //self.bus.callstack_push(self.pc);
         self.pc = address;
     }
 
@@ -185,8 +181,9 @@ impl Cpu {
         self.v[x] = value;
     }
 
-    fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) {
-        let sprite = self.memory.load(self.ri as usize, n);
+    fn op_Dxyn(&mut self, x: usize, y: usize, _n: usize) {
+        //let sprite = self.bus.as_ref().load(self.ri as usize, n);
+        let sprite = [0u8];
         let flat = Self::flatten_index(self.v[x] as usize, self.v[y] as usize);
         let collision = self.draw_and_check_collision(flat, &sprite);
         self.overflow_flag(collision);
@@ -231,33 +228,44 @@ impl Cpu {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
+    macro_rules! uses {
+        ($cpu_var:ident) => {
+            let mut $cpu_var = Cpu::new();
+        };
+        ($cpu_var:ident, $bus_var:ident) => {
+            uses!(cpu_var);
+            let mut $bus_var = Bus::new(Box::from(Ram::new()));
+        };
+    }
+
     #[test]
     fn pc_starts_at_0x200() {
-        let cpu = Cpu::new();
+        uses!(cpu);
         assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
     fn execute_normally_increments_pc() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.execute(0x6000);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn ld_constant_to_register() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.execute(0x6075);
         assert_eq!(0x75, cpu.v[0x0]);
     }
 
     #[test]
     fn add_constant_to_register_normal() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.execute(0x7001);
         assert_eq!(2, cpu.v[0x0]);
@@ -266,7 +274,7 @@ mod tests {
 
     #[test]
     fn add_constant_to_register_overflow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 0xFF;
         cpu.execute(0x7001);
         assert_eq!(0, cpu.v[0x0]);
@@ -275,7 +283,7 @@ mod tests {
 
     #[test]
     fn add_register_to_register_normal() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
         cpu.execute(0x8014);
@@ -285,7 +293,7 @@ mod tests {
 
     #[test]
     fn add_register_to_register_overflow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 0xFF;
         cpu.v[0x1] = 1;
         cpu.execute(0x8014);
@@ -295,21 +303,21 @@ mod tests {
 
     #[test]
     fn jp_sets_pc() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.execute(0x1ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn call_sets_pc() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn ret_pops_pc() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.execute(0x2ABC);
         cpu.execute(0x00EE);
         assert_eq!(0x202, cpu.pc);
@@ -317,7 +325,7 @@ mod tests {
 
     #[test]
     fn call_ret_nested() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.execute(0x2678);
         cpu.execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
@@ -331,7 +339,7 @@ mod tests {
 
     #[test]
     fn se_constant_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.execute(0x3020);
         assert_eq!(0x204, cpu.pc);
@@ -339,7 +347,7 @@ mod tests {
 
     #[test]
     fn se_constant_no_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.execute(0x3021);
         assert_eq!(0x202, cpu.pc);
@@ -347,7 +355,7 @@ mod tests {
 
     #[test]
     fn sne_constant_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.execute(0x4021);
         assert_eq!(0x204, cpu.pc);
@@ -355,7 +363,7 @@ mod tests {
 
     #[test]
     fn sne_constant_no_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.execute(0x4020);
         assert_eq!(0x202, cpu.pc);
@@ -363,7 +371,7 @@ mod tests {
 
     #[test]
     fn se_register_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 32;
         cpu.execute(0x5010);
@@ -372,7 +380,7 @@ mod tests {
 
     #[test]
     fn se_register_no_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 33;
         cpu.execute(0x5010);
@@ -381,7 +389,7 @@ mod tests {
 
     #[test]
     fn ld_register_to_register() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.execute(0x8100);
         assert_eq!(32, cpu.v[0x1]);
@@ -389,7 +397,7 @@ mod tests {
 
     #[test]
     fn or_register_to_register() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
         cpu.execute(0x8011);
@@ -398,7 +406,7 @@ mod tests {
 
     #[test]
     fn and_register_to_register() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
         cpu.execute(0x8012);
@@ -407,7 +415,7 @@ mod tests {
 
     #[test]
     fn xor_register_to_register() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
         cpu.execute(0x8013);
@@ -416,7 +424,7 @@ mod tests {
 
     #[test]
     fn sub_register_to_register_no_borrow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
         cpu.execute(0x8015);
@@ -426,7 +434,7 @@ mod tests {
 
     #[test]
     fn sub_register_to_register_borrow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
         cpu.execute(0x8015);
@@ -436,7 +444,7 @@ mod tests {
 
     #[test]
     fn srl_no_underflow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.execute(0x8006);
         assert_eq!(16, cpu.v[0x0]);
@@ -445,7 +453,7 @@ mod tests {
 
     #[test]
     fn srl_underflow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 31;
         cpu.execute(0x8006);
         assert_eq!(15, cpu.v[0x0]);
@@ -454,7 +462,7 @@ mod tests {
 
     #[test]
     fn subn_no_borrow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
         cpu.execute(0x8017);
@@ -464,7 +472,7 @@ mod tests {
 
     #[test]
     fn subn_borrow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
         cpu.execute(0x8017);
@@ -474,7 +482,7 @@ mod tests {
 
     #[test]
     fn sll_no_overflow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 0x7F;
         cpu.execute(0x800E);
         assert_eq!(0xFE, cpu.v[0x0]);
@@ -483,7 +491,7 @@ mod tests {
 
     #[test]
     fn sll_overflow() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 0xFF;
         cpu.execute(0x800E);
         assert_eq!(0xFE, cpu.v[0x0]);
@@ -492,7 +500,7 @@ mod tests {
 
     #[test]
     fn sne_register_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
         cpu.execute(0x9010);
@@ -501,7 +509,7 @@ mod tests {
 
     #[test]
     fn sne_register_no_skip() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 1;
         cpu.execute(0x9010);
@@ -510,14 +518,14 @@ mod tests {
 
     #[test]
     fn ld_address_register() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.execute(0xAABC);
         assert_eq!(0xABC, cpu.ri);
     }
 
     #[test]
     fn jp_address_offset() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.v[0x0] = 2;
         cpu.execute(0xBABC);
         assert_eq!(0xABE, cpu.pc);
@@ -525,7 +533,7 @@ mod tests {
 
     #[test]
     fn rnd_supplied_full_mask() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
         cpu.execute(0xC0FF);
         assert_eq!(173, cpu.v[0x0]);
@@ -533,7 +541,7 @@ mod tests {
 
     #[test]
     fn rnd_supplied_partial_mask() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
         cpu.execute(0xC07E);
         assert_eq!(44, cpu.v[0x0]);
@@ -541,7 +549,7 @@ mod tests {
 
     #[test]
     fn rnd_supplied_no_mask() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
         cpu.execute(0xC000);
         assert_eq!(0, cpu.v[0x0]);
@@ -549,9 +557,9 @@ mod tests {
 
     #[test]
     fn drw_two_byte_sprite_no_overlap() {
-        let mut cpu = Cpu::new();
+        uses!(cpu);
         let bytes = &[0x9A, 0x3C];
-        cpu.memory.store(0x100, bytes);
+        //cpu.bus.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.execute(0xD002);
@@ -561,9 +569,9 @@ mod tests {
 
     #[test]
     fn drw_two_byte_sprite_overlap() {
-        let mut cpu = Cpu::new();
-        let bytes = &[0x9A, 0x3C];
-        cpu.memory.store(0x100, bytes);
+        uses!(cpu);
+        //let bytes = &[0x9A, 0x3C];
+        //cpu.bus.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.execute(0xD001);
@@ -575,9 +583,9 @@ mod tests {
 
     #[test]
     fn cls_empties_vbuffer() {
-        let mut cpu = Cpu::new();
-        let bytes = &[0x9A, 0x3C];
-        cpu.memory.store(0x100, bytes);
+        uses!(cpu);
+        //let bytes = &[0x9A, 0x3C];
+        //cpu.bus.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.execute(0xD002);
