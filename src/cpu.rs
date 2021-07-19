@@ -35,9 +35,7 @@ impl Cpu {
         self.pc += 2;
 
         let nibbles = Self::unpack_nibbles(instruction);
-        let x = nibbles.1 as usize;
-        let y = nibbles.2 as usize;
-        let n = nibbles.3 as usize;
+        let (_, x, y, n) = nibbles;
         let nnn = (instruction & 0x0FFF) as u16;
         let kk = (instruction & 0x00FF) as u8;
 
@@ -70,12 +68,12 @@ impl Cpu {
         };
     }
 
-    fn unpack_nibbles(instruction: u16) -> (u8, u8, u8, u8) {
+    fn unpack_nibbles(instruction: u16) -> (usize, usize, usize, usize) {
         (
-            ((instruction & 0xF000) >> 12) as u8,
-            ((instruction & 0x0F00) >> 8) as u8,
-            ((instruction & 0x00F0) >> 4) as u8,
-            (instruction & 0x000F) as u8,
+            ((instruction & 0xF000) >> 12) as usize,
+            ((instruction & 0x0F00) >> 8) as usize,
+            ((instruction & 0x00F0) >> 4) as usize,
+            (instruction & 0x000F) as usize,
         )
     }
 
