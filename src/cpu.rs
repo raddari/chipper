@@ -1,3 +1,4 @@
+use crate::memory::Memory;
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
@@ -6,23 +7,25 @@ pub struct Cpu {
     pc: u16,
     ri: u16,
     v: [u8; 16],
+    memory: Memory,
     vbuffer: [u8; CHIP8_VBUFFER],
     random: StdRng,
 }
 
 impl Default for Cpu {
     fn default() -> Self {
-        Cpu::new()
+        Cpu::new(Memory::new())
     }
 }
 
 #[allow(non_snake_case)]
 impl Cpu {
-    pub fn new() -> Self {
+    pub fn new(memory: Memory) -> Self {
         Cpu {
             pc: 0x200,
             ri: 0,
             v: [0; 16],
+            memory,
             vbuffer: [0; CHIP8_VBUFFER],
             random: StdRng::from_entropy(),
         }
@@ -235,7 +238,7 @@ mod tests {
 
     macro_rules! uses {
         ($cpu_var:ident) => {
-            let mut $cpu_var = Cpu::new();
+            let mut $cpu_var = Cpu::new(Memory::new());
         };
         ($cpu_var:ident, $bus_var:ident) => {
             uses!(cpu_var);
