@@ -84,7 +84,7 @@ impl Cpu {
     }
 
     fn op_00EE(&mut self) {
-        //self.pc = self.bus.callstack_pop().unwrap();
+        self.pc = self.memory.callstack_pop().unwrap();
     }
 
     fn op_0nnn(&self, _address: u16) {
@@ -97,7 +97,7 @@ impl Cpu {
     }
 
     fn op_2nnn(&mut self, address: u16) {
-        //self.bus.callstack_push(self.pc);
+        self.memory.callstack_push(self.pc);
         self.pc = address;
     }
 
@@ -184,9 +184,8 @@ impl Cpu {
         self.v[x] = value;
     }
 
-    fn op_Dxyn(&mut self, x: usize, y: usize, _n: usize) {
-        //let sprite = self.bus.as_ref().load(self.ri as usize, n);
-        let sprite = [0u8];
+    fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) {
+        let sprite = self.memory.load(self.ri as usize, n);
         let flat = Self::flatten_index(self.v[x] as usize, self.v[y] as usize);
         let collision = self.draw_and_check_collision(flat, &sprite);
         self.overflow_flag(collision);
@@ -562,7 +561,7 @@ mod tests {
     fn drw_two_byte_sprite_no_overlap() {
         uses!(cpu);
         let bytes = &[0x9A, 0x3C];
-        //cpu.bus.store(0x100, bytes);
+        cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.execute(0xD002);
@@ -573,8 +572,8 @@ mod tests {
     #[test]
     fn drw_two_byte_sprite_overlap() {
         uses!(cpu);
-        //let bytes = &[0x9A, 0x3C];
-        //cpu.bus.store(0x100, bytes);
+        let bytes = &[0x9A, 0x3C];
+        cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.execute(0xD001);
@@ -587,8 +586,8 @@ mod tests {
     #[test]
     fn cls_empties_vbuffer() {
         uses!(cpu);
-        //let bytes = &[0x9A, 0x3C];
-        //cpu.bus.store(0x100, bytes);
+        let bytes = &[0x9A, 0x3C];
+        cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.execute(0xD002);
