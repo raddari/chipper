@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn ld_constant_to_register() {
         uses!(cpu);
-        cpu.execute(0x6075);
+        cpu.op_6xkk(0x0, 0x75);
         assert_eq!(0x75, cpu.v[0x0]);
     }
 
@@ -267,7 +267,7 @@ mod tests {
     fn add_constant_to_register_normal() {
         uses!(cpu);
         cpu.v[0x0] = 1;
-        cpu.execute(0x7001);
+        cpu.op_7xkk(0x0, 1);
         assert_eq!(2, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -276,7 +276,7 @@ mod tests {
     fn add_constant_to_register_overflow() {
         uses!(cpu);
         cpu.v[0x0] = 0xFF;
-        cpu.execute(0x7001);
+        cpu.op_7xkk(0x0, 1);
         assert_eq!(0, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -286,7 +286,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
-        cpu.execute(0x8014);
+        cpu.op_8xy4(0x0, 0x1);
         assert_eq!(3, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -296,7 +296,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0xFF;
         cpu.v[0x1] = 1;
-        cpu.execute(0x8014);
+        cpu.op_8xy4(0x0, 0x1);
         assert_eq!(0, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -304,69 +304,69 @@ mod tests {
     #[test]
     fn jp_sets_pc() {
         uses!(cpu);
-        cpu.execute(0x1ABC);
+        cpu.op_1nnn(0xABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn call_sets_pc() {
         uses!(cpu);
-        cpu.execute(0x2ABC);
+        cpu.op_2nnn(0xABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn ret_pops_pc() {
         uses!(cpu);
-        cpu.execute(0x2ABC);
-        cpu.execute(0x00EE);
-        assert_eq!(0x202, cpu.pc);
+        cpu.op_2nnn(0xABC);
+        cpu.op_00EE();
+        assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
     fn call_ret_nested() {
         uses!(cpu);
-        cpu.execute(0x2678);
-        cpu.execute(0x2ABC);
+        cpu.op_2nnn(0x678);
+        cpu.op_2nnn(0xABC);
         assert_eq!(0xABC, cpu.pc);
 
-        cpu.execute(0x00EE);
-        assert_eq!(0x67A, cpu.pc);
+        cpu.op_00EE();
+        assert_eq!(0x678, cpu.pc);
 
-        cpu.execute(0x00EE);
-        assert_eq!(0x202, cpu.pc);
+        cpu.op_00EE();
+        assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
     fn se_constant_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x3020);
-        assert_eq!(0x204, cpu.pc);
+        cpu.op_3xkk(0x0, 32);
+        assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn se_constant_no_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x3021);
-        assert_eq!(0x202, cpu.pc);
+        cpu.op_3xkk(0x0, 31);
+        assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
     fn sne_constant_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x4021);
-        assert_eq!(0x204, cpu.pc);
+        cpu.op_4xkk(0x0, 31);
+        assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn sne_constant_no_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x4020);
-        assert_eq!(0x202, cpu.pc);
+        cpu.op_4xkk(0x0, 32);
+        assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
@@ -374,8 +374,8 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 32;
-        cpu.execute(0x5010);
-        assert_eq!(0x204, cpu.pc);
+        cpu.op_5xy0(0x0, 0x1);
+        assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
@@ -383,15 +383,15 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 33;
-        cpu.execute(0x5010);
-        assert_eq!(0x202, cpu.pc);
+        cpu.op_5xy0(0x0, 0x1);
+        assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
     fn ld_register_to_register() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x8100);
+        cpu.op_8xy0(1, 0);
         assert_eq!(32, cpu.v[0x1]);
     }
 
@@ -400,7 +400,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
-        cpu.execute(0x8011);
+        cpu.op_8xy1(0x0, 0x1);
         assert_eq!(0x7D, cpu.v[0x0]);
     }
 
@@ -409,7 +409,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
-        cpu.execute(0x8012);
+        cpu.op_8xy2(0x0, 0x1);
         assert_eq!(0x14, cpu.v[0x0]);
     }
 
@@ -418,7 +418,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
-        cpu.execute(0x8013);
+        cpu.op_8xy3(0x0, 0x1);
         assert_eq!(0x69, cpu.v[0x0]);
     }
 
@@ -427,7 +427,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
-        cpu.execute(0x8015);
+        cpu.op_8xy5(0x0, 0x1);
         assert_eq!(14, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -437,7 +437,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
-        cpu.execute(0x8015);
+        cpu.op_8xy5(0x0, 0x1);
         assert_eq!(242, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -446,7 +446,7 @@ mod tests {
     fn srl_no_underflow() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x8006);
+        cpu.op_8xy6(0x0, 0x0);
         assert_eq!(16, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -455,7 +455,7 @@ mod tests {
     fn srl_underflow() {
         uses!(cpu);
         cpu.v[0x0] = 31;
-        cpu.execute(0x8006);
+        cpu.op_8xy6(0x0, 0x0);
         assert_eq!(15, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -465,7 +465,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
-        cpu.execute(0x8017);
+        cpu.op_8xy7(0x0, 0x1);
         assert_eq!(14, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -475,7 +475,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
-        cpu.execute(0x8017);
+        cpu.op_8xy7(0x0, 0x1);
         assert_eq!(242, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -484,7 +484,7 @@ mod tests {
     fn sll_no_overflow() {
         uses!(cpu);
         cpu.v[0x0] = 0x7F;
-        cpu.execute(0x800E);
+        cpu.op_8xyE(0x0, 0x0);
         assert_eq!(0xFE, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -493,7 +493,7 @@ mod tests {
     fn sll_overflow() {
         uses!(cpu);
         cpu.v[0x0] = 0xFF;
-        cpu.execute(0x800E);
+        cpu.op_8xyE(0x0, 0x0);
         assert_eq!(0xFE, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -503,8 +503,8 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
-        cpu.execute(0x9010);
-        assert_eq!(0x204, cpu.pc);
+        cpu.op_9xy0(0x0, 0x1);
+        assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
@@ -512,14 +512,14 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 1;
-        cpu.execute(0x9010);
-        assert_eq!(0x202, cpu.pc);
+        cpu.op_9xy0(0x0, 0x1);
+        assert_eq!(0x200, cpu.pc);
     }
 
     #[test]
     fn ld_address_register() {
         uses!(cpu);
-        cpu.execute(0xAABC);
+        cpu.op_Annn(0xABC);
         assert_eq!(0xABC, cpu.ri);
     }
 
@@ -527,7 +527,7 @@ mod tests {
     fn jp_address_offset() {
         uses!(cpu);
         cpu.v[0x0] = 2;
-        cpu.execute(0xBABC);
+        cpu.op_Bnnn(0xABC);
         assert_eq!(0xABE, cpu.pc);
     }
 
@@ -535,7 +535,7 @@ mod tests {
     fn rnd_supplied_full_mask() {
         uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
-        cpu.execute(0xC0FF);
+        cpu.op_Cxkk(0x0, 0xFF);
         assert_eq!(173, cpu.v[0x0]);
     }
 
@@ -543,7 +543,7 @@ mod tests {
     fn rnd_supplied_partial_mask() {
         uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
-        cpu.execute(0xC07E);
+        cpu.op_Cxkk(0x0, 0x7E);
         assert_eq!(44, cpu.v[0x0]);
     }
 
@@ -551,7 +551,7 @@ mod tests {
     fn rnd_supplied_no_mask() {
         uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
-        cpu.execute(0xC000);
+        cpu.op_Cxkk(0x0, 0x00);
         assert_eq!(0, cpu.v[0x0]);
     }
 
@@ -562,7 +562,7 @@ mod tests {
         //cpu.bus.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
-        cpu.execute(0xD002);
+        cpu.op_Dxyn(0x0, 0x0, 0x2);
         assert_eq!(bytes, &cpu.vbuffer[130..132]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -574,9 +574,9 @@ mod tests {
         //cpu.bus.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
-        cpu.execute(0xD001);
+        cpu.op_Dxyn(0x0, 0x0, 0x1);
         cpu.ri = 0x101;
-        cpu.execute(0xD001);
+        cpu.op_Dxyn(0x0, 0x0, 0x1);
         assert_eq!(&[0xA6], &cpu.vbuffer[130..131]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -588,8 +588,8 @@ mod tests {
         //cpu.bus.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
-        cpu.execute(0xD002);
-        cpu.execute(0x00E0);
+        cpu.op_Dxyn(0x0, 0x0, 0x1);
+        cpu.op_00E0();
         assert_eq!(&[0x0, 0x0], &cpu.vbuffer[130..132]);
     }
 }
