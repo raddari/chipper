@@ -82,7 +82,10 @@ impl Cpu {
     }
 
     fn op_00EE(&mut self) {
-        self.pc = self.memory.callstack_pop().unwrap();
+        self.pc = match self.memory.callstack_pop() {
+            Some(n) => n,
+            None => self.pc,
+        };
     }
 
     fn op_0nnn(&self, _address: u16) {
