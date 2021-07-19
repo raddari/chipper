@@ -20,11 +20,11 @@ impl Memory {
         }
     }
 
-    fn load(&self, offset: usize, size: usize) -> Vec<u8> {
+    pub fn load(&self, offset: usize, size: usize) -> Vec<u8> {
         self.bytes[offset..offset + size].to_vec()
     }
 
-    fn store(&mut self, offset: usize, data: &[u8]) {
+    pub fn store(&mut self, offset: usize, data: &[u8]) {
         self.bytes[offset..offset + data.len()].copy_from_slice(data);
     }
 
