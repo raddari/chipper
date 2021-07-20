@@ -50,7 +50,7 @@ impl Cpu {
             (0x2, _, _, _) => self.op_2nnn(nnn),
             (0x3, _, _, _) => self.op_3xkk(x, kk),
             (0x4, _, _, _) => self.op_4xkk(x, kk),
-            (0x5, _, _, _) => self.op_5xy0(x, y),
+            (0x5, _, _, 0x0) => self.op_5xy0(x, y),
             (0x6, _, _, _) => self.op_6xkk(x, kk),
             (0x7, _, _, _) => self.op_7xkk(x, kk),
             (0x8, _, _, 0x0) => self.op_8xy0(x, y),
