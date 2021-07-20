@@ -1,3 +1,4 @@
+use crate::keyboard::{Key, Keyboard};
 use crate::memory::Memory;
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
@@ -8,24 +9,26 @@ pub struct Cpu {
     ri: u16,
     v: [u8; 16],
     memory: Memory,
+    keyboard: Keyboard,
     vbuffer: [u8; CHIP8_VBUFFER],
     random: StdRng,
 }
 
 impl Default for Cpu {
     fn default() -> Self {
-        Cpu::new(Memory::new())
+        Cpu::new(Memory::new(), Keyboard::new())
     }
 }
 
 #[allow(non_snake_case)]
 impl Cpu {
-    pub fn new(memory: Memory) -> Self {
+    pub fn new(memory: Memory, keyboard: Keyboard) -> Self {
         Cpu {
             pc: 0x200,
             ri: 0,
             v: [0; 16],
             memory,
+            keyboard,
             vbuffer: [0; CHIP8_VBUFFER],
             random: StdRng::from_entropy(),
         }
@@ -64,6 +67,7 @@ impl Cpu {
             (0xB, _, _, _) => self.op_Bnnn(nnn),
             (0xC, _, _, _) => self.op_Cxkk(x, kk),
             (0xD, _, _, _) => self.op_Dxyn(x, y, n),
+            (0xE, _, _, _) => self.op_Ex9E(x),
             _ => (),
         };
     }
@@ -192,6 +196,13 @@ impl Cpu {
         self.overflow_flag(collision);
     }
 
+    fn op_Ex9E(&mut self, x: usize) {
+        match Key::from_ordinal(self.v[x] as usize) {
+            Some(k) => if self.keyboard.is_pressed(k) { self.pc += 2 },
+            None => (),
+        }
+    }
+
     fn draw_and_check_collision(&mut self, index: usize, sprite: &[u8]) -> bool {
         let mut collision = false;
         for (i, byte) in self.vbuffer[index..index + sprite.len()]
@@ -238,11 +249,7 @@ mod tests {
 
     macro_rules! uses {
         ($cpu_var:ident) => {
-            let mut $cpu_var = Cpu::new(Memory::new());
-        };
-        ($cpu_var:ident, $bus_var:ident) => {
-            uses!(cpu_var);
-            let mut $bus_var = Bus::new(Box::from(Ram::new()));
+            let mut $cpu_var = Cpu::new(Memory::new(), Keyboard::new());
         };
     }
 
@@ -594,5 +601,23 @@ mod tests {
         cpu.execute(0xD002);
         cpu.execute(0x00E0);
         assert_eq!(&[0x0, 0x0], &cpu.vbuffer[130..132]);
+    }
+
+    #[test]
+    fn skp_register_keyboard_skip() {
+        uses!(cpu);
+        cpu.v[0x0] = 0xB;
+        cpu.keyboard.press(Key::B);
+        cpu.execute(0xE09E);
+        assert_eq!(0x204, cpu.pc);
+    }
+
+    #[test]
+    fn skp_register_keyboard_no_skip() {
+        uses!(cpu);
+        cpu.v[0x0] = 0xB;
+        cpu.keyboard.press(Key::C);
+        cpu.execute(0xE09E);
+        assert_eq!(0x202, cpu.pc);
     }
 }
