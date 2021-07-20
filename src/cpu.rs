@@ -67,7 +67,8 @@ impl Cpu {
             (0xB, _, _, _) => self.op_Bnnn(nnn),
             (0xC, _, _, _) => self.op_Cxkk(x, kk),
             (0xD, _, _, _) => self.op_Dxyn(x, y, n),
-            (0xE, _, _, _) => self.op_Ex9E(x),
+            (0xE, _, 0x9, 0xE) => self.op_Ex9E(x),
+            (0xE, _, 0xA, 0x1) => self.op_ExA1(x),
             _ => (),
         };
     }
@@ -198,7 +199,22 @@ impl Cpu {
 
     fn op_Ex9E(&mut self, x: usize) {
         match Key::from_ordinal(self.v[x] as usize) {
-            Some(k) => if self.keyboard.is_pressed(k) { self.pc += 2 },
+            Some(k) => {
+                if self.keyboard.is_pressed(k) {
+                    self.pc += 2;
+                }
+            }
+            None => (),
+        }
+    }
+
+    fn op_ExA1(&mut self, x: usize) {
+        match Key::from_ordinal(self.v[x] as usize) {
+            Some(k) => {
+                if !self.keyboard.is_pressed(k) {
+                    self.pc += 2;
+                }
+            }
             None => (),
         }
     }
@@ -618,6 +634,24 @@ mod tests {
         cpu.v[0x0] = 0xB;
         cpu.keyboard.press(Key::C);
         cpu.execute(0xE09E);
+        assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn sknp_register_keyboard_skip() {
+        uses!(cpu);
+        cpu.v[0x0] = 0xB;
+        cpu.keyboard.press(Key::C);
+        cpu.execute(0xE0A1);
+        assert_eq!(0x204, cpu.pc);
+    }
+
+    #[test]
+    fn sknp_register_keyboard_no_skip() {
+        uses!(cpu);
+        cpu.v[0x0] = 0xB;
+        cpu.keyboard.press(Key::B);
+        cpu.execute(0xE0A1);
         assert_eq!(0x202, cpu.pc);
     }
 }
