@@ -1,4 +1,5 @@
 pub mod cpu;
+pub mod keyboard;
 pub mod memory;
 
 pub const CHIP8_WIDTH: usize = 64;
