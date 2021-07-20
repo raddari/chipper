@@ -8,6 +8,7 @@ repository = "https://github.com/raddari/chipper"
 license = "MIT"
 
 [dependencies]
+enum-ordinalize = "3.1.*"
 rand = "0.8.*"
 
 [dev-dependencies]
