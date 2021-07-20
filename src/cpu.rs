@@ -198,24 +198,21 @@ impl Cpu {
     }
 
     fn op_Ex9E(&mut self, x: usize) {
-        match Key::from_ordinal(self.v[x] as usize) {
-            Some(k) => {
-                if self.keyboard.is_pressed(k) {
-                    self.pc += 2;
-                }
-            }
-            None => (),
+        if self.check_key(x) {
+            self.pc += 2;
         }
     }
 
     fn op_ExA1(&mut self, x: usize) {
-        match Key::from_ordinal(self.v[x] as usize) {
-            Some(k) => {
-                if !self.keyboard.is_pressed(k) {
-                    self.pc += 2;
-                }
-            }
-            None => (),
+        if !self.check_key(x) {
+            self.pc += 2;
+        }
+    }
+
+    fn check_key(&self, src: usize) -> bool {
+        match Key::from_ordinal(self.v[src] as usize) {
+            Some(key) => self.keyboard.is_pressed(key),
+            None => false,
         }
     }
 
