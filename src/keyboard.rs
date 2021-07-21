@@ -25,6 +25,12 @@ pub struct Keyboard {
     keystate: [bool; 16],
 }
 
+impl Default for Keyboard {
+    fn default() -> Self {
+        Keyboard::new()
+    }
+}
+
 impl Keyboard {
     pub fn new() -> Self {
         Keyboard {
