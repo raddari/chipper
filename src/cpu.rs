@@ -8,6 +8,7 @@ pub struct Cpu {
     pc: u16,
     ri: u16,
     v: [u8; 16],
+    dt: u8,
     memory: Memory,
     keyboard: Keyboard,
     vbuffer: [u8; CHIP8_VBUFFER],
@@ -27,6 +28,7 @@ impl Cpu {
             pc: 0x200,
             ri: 0,
             v: [0; 16],
+            dt: 0,
             memory,
             keyboard,
             vbuffer: [0; CHIP8_VBUFFER],
@@ -69,6 +71,7 @@ impl Cpu {
             (0xD, _, _, _) => self.op_Dxyn(x, y, n),
             (0xE, _, 0x9, 0xE) => self.op_Ex9E(x),
             (0xE, _, 0xA, 0x1) => self.op_ExA1(x),
+            (0xF, _, 0x0, 0x7) => self.op_Fx07(x),
             _ => (),
         };
     }
@@ -207,6 +210,10 @@ impl Cpu {
         if !self.check_key(x) {
             self.pc += 2;
         }
+    }
+
+    fn op_Fx07(&mut self, x: usize) {
+        self.v[x] = self.dt;
     }
 
     fn check_key(&self, src: usize) -> bool {
@@ -650,5 +657,13 @@ mod tests {
         cpu.keyboard.press(Key::B);
         cpu.execute(0xE0A1);
         assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn ld_dt_to_register() {
+        uses!(cpu);
+        cpu.dt = 3;
+        cpu.execute(0xF007);
+        assert_eq!(3, cpu.v[0x0]);
     }
 }
