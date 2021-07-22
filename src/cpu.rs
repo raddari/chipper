@@ -1,5 +1,6 @@
 use crate::keyboard::{Key, Keyboard};
 use crate::memory::Memory;
+use crate::opcode::Opcode;
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
@@ -36,53 +37,18 @@ impl Cpu {
         }
     }
 
-    pub fn execute(&mut self, instruction: u16) {
-        self.pc += 2;
-
-        let nibbles = Self::unpack_nibbles(instruction);
-        let (_, x, y, n) = nibbles;
-        let nnn = (instruction & 0x0FFF) as u16;
-        let kk = (instruction & 0x00FF) as u8;
-
-        match nibbles {
-            (0x0, 0x0, 0xE, 0x0) => self.op_00E0(),
-            (0x0, 0x0, 0xE, 0xE) => self.op_00EE(),
-            (0x0, _, _, _) => self.op_0nnn(nnn),
-            (0x1, _, _, _) => self.op_1nnn(nnn),
-            (0x2, _, _, _) => self.op_2nnn(nnn),
-            (0x3, _, _, _) => self.op_3xkk(x, kk),
-            (0x4, _, _, _) => self.op_4xkk(x, kk),
-            (0x5, _, _, 0x0) => self.op_5xy0(x, y),
-            (0x6, _, _, _) => self.op_6xkk(x, kk),
-            (0x7, _, _, _) => self.op_7xkk(x, kk),
-            (0x8, _, _, 0x0) => self.op_8xy0(x, y),
-            (0x8, _, _, 0x1) => self.op_8xy1(x, y),
-            (0x8, _, _, 0x2) => self.op_8xy2(x, y),
-            (0x8, _, _, 0x3) => self.op_8xy3(x, y),
-            (0x8, _, _, 0x4) => self.op_8xy4(x, y),
-            (0x8, _, _, 0x5) => self.op_8xy5(x, y),
-            (0x8, _, _, 0x6) => self.op_8xy6(x, y),
-            (0x8, _, _, 0x7) => self.op_8xy7(x, y),
-            (0x8, _, _, 0xE) => self.op_8xyE(x, y),
-            (0x9, _, _, 0x0) => self.op_9xy0(x, y),
-            (0xA, _, _, _) => self.op_Annn(nnn),
-            (0xB, _, _, _) => self.op_Bnnn(nnn),
-            (0xC, _, _, _) => self.op_Cxkk(x, kk),
-            (0xD, _, _, _) => self.op_Dxyn(x, y, n),
-            (0xE, _, 0x9, 0xE) => self.op_Ex9E(x),
-            (0xE, _, 0xA, 0x1) => self.op_ExA1(x),
-            (0xF, _, 0x0, 0x7) => self.op_Fx07(x),
-            _ => (),
-        };
+    fn decode_execute(&mut self, instruction: u16) {
+        match Opcode::decode(instruction) {
+            Ok(op) => self.execute(op),
+            Err(_) => self.pc += 2,
+        }
     }
 
-    fn unpack_nibbles(instruction: u16) -> (usize, usize, usize, usize) {
-        (
-            ((instruction & 0xF000) >> 12) as usize,
-            ((instruction & 0x0F00) >> 8) as usize,
-            ((instruction & 0x00F0) >> 4) as usize,
-            (instruction & 0x000F) as usize,
-        )
+    fn execute(&mut self, opcode: Opcode) {
+        self.pc += 2;
+        match opcode {
+            _ => (),
+        };
     }
 
     fn op_00E0(&mut self) {
@@ -280,16 +246,16 @@ mod tests {
     }
 
     #[test]
-    fn execute_normally_increments_pc() {
+    fn decode_execute_normally_increments_pc() {
         uses!(cpu);
-        cpu.execute(0x6000);
+        cpu.decode_execute(0x6000);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn ld_constant_to_register() {
         uses!(cpu);
-        cpu.execute(0x6075);
+        cpu.decode_execute(0x6075);
         assert_eq!(0x75, cpu.v[0x0]);
     }
 
@@ -297,7 +263,7 @@ mod tests {
     fn add_constant_to_register_normal() {
         uses!(cpu);
         cpu.v[0x0] = 1;
-        cpu.execute(0x7001);
+        cpu.decode_execute(0x7001);
         assert_eq!(2, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -306,7 +272,7 @@ mod tests {
     fn add_constant_to_register_overflow() {
         uses!(cpu);
         cpu.v[0x0] = 0xFF;
-        cpu.execute(0x7001);
+        cpu.decode_execute(0x7001);
         assert_eq!(0, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -316,7 +282,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
-        cpu.execute(0x8014);
+        cpu.decode_execute(0x8014);
         assert_eq!(3, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -326,7 +292,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0xFF;
         cpu.v[0x1] = 1;
-        cpu.execute(0x8014);
+        cpu.decode_execute(0x8014);
         assert_eq!(0, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -334,36 +300,36 @@ mod tests {
     #[test]
     fn jp_sets_pc() {
         uses!(cpu);
-        cpu.execute(0x1ABC);
+        cpu.decode_execute(0x1ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn call_sets_pc() {
         uses!(cpu);
-        cpu.execute(0x2ABC);
+        cpu.decode_execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn ret_pops_pc() {
         uses!(cpu);
-        cpu.execute(0x2ABC);
-        cpu.execute(0x00EE);
+        cpu.decode_execute(0x2ABC);
+        cpu.decode_execute(0x00EE);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn call_ret_nested() {
         uses!(cpu);
-        cpu.execute(0x2678);
-        cpu.execute(0x2ABC);
+        cpu.decode_execute(0x2678);
+        cpu.decode_execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
 
-        cpu.execute(0x00EE);
+        cpu.decode_execute(0x00EE);
         assert_eq!(0x67A, cpu.pc);
 
-        cpu.execute(0x00EE);
+        cpu.decode_execute(0x00EE);
         assert_eq!(0x202, cpu.pc);
     }
 
@@ -371,7 +337,7 @@ mod tests {
     fn se_constant_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x3020);
+        cpu.decode_execute(0x3020);
         assert_eq!(0x204, cpu.pc);
     }
 
@@ -379,7 +345,7 @@ mod tests {
     fn se_constant_no_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x3021);
+        cpu.decode_execute(0x3021);
         assert_eq!(0x202, cpu.pc);
     }
 
@@ -387,7 +353,7 @@ mod tests {
     fn sne_constant_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x4021);
+        cpu.decode_execute(0x4021);
         assert_eq!(0x204, cpu.pc);
     }
 
@@ -395,7 +361,7 @@ mod tests {
     fn sne_constant_no_skip() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x4020);
+        cpu.decode_execute(0x4020);
         assert_eq!(0x202, cpu.pc);
     }
 
@@ -404,7 +370,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 32;
-        cpu.execute(0x5010);
+        cpu.decode_execute(0x5010);
         assert_eq!(0x204, cpu.pc);
     }
 
@@ -413,7 +379,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 33;
-        cpu.execute(0x5010);
+        cpu.decode_execute(0x5010);
         assert_eq!(0x202, cpu.pc);
     }
 
@@ -421,7 +387,7 @@ mod tests {
     fn ld_register_to_register() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x8100);
+        cpu.decode_execute(0x8100);
         assert_eq!(32, cpu.v[0x1]);
     }
 
@@ -430,7 +396,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
-        cpu.execute(0x8011);
+        cpu.decode_execute(0x8011);
         assert_eq!(0x7D, cpu.v[0x0]);
     }
 
@@ -439,7 +405,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
-        cpu.execute(0x8012);
+        cpu.decode_execute(0x8012);
         assert_eq!(0x14, cpu.v[0x0]);
     }
 
@@ -448,7 +414,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
-        cpu.execute(0x8013);
+        cpu.decode_execute(0x8013);
         assert_eq!(0x69, cpu.v[0x0]);
     }
 
@@ -457,7 +423,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
-        cpu.execute(0x8015);
+        cpu.decode_execute(0x8015);
         assert_eq!(14, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -467,7 +433,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
-        cpu.execute(0x8015);
+        cpu.decode_execute(0x8015);
         assert_eq!(242, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -476,7 +442,7 @@ mod tests {
     fn srl_no_underflow() {
         uses!(cpu);
         cpu.v[0x0] = 32;
-        cpu.execute(0x8006);
+        cpu.decode_execute(0x8006);
         assert_eq!(16, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -485,7 +451,7 @@ mod tests {
     fn srl_underflow() {
         uses!(cpu);
         cpu.v[0x0] = 31;
-        cpu.execute(0x8006);
+        cpu.decode_execute(0x8006);
         assert_eq!(15, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -495,7 +461,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
-        cpu.execute(0x8017);
+        cpu.decode_execute(0x8017);
         assert_eq!(14, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -505,7 +471,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
-        cpu.execute(0x8017);
+        cpu.decode_execute(0x8017);
         assert_eq!(242, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -514,7 +480,7 @@ mod tests {
     fn sll_no_overflow() {
         uses!(cpu);
         cpu.v[0x0] = 0x7F;
-        cpu.execute(0x800E);
+        cpu.decode_execute(0x800E);
         assert_eq!(0xFE, cpu.v[0x0]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -523,7 +489,7 @@ mod tests {
     fn sll_overflow() {
         uses!(cpu);
         cpu.v[0x0] = 0xFF;
-        cpu.execute(0x800E);
+        cpu.decode_execute(0x800E);
         assert_eq!(0xFE, cpu.v[0x0]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -533,7 +499,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
-        cpu.execute(0x9010);
+        cpu.decode_execute(0x9010);
         assert_eq!(0x204, cpu.pc);
     }
 
@@ -542,14 +508,14 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 1;
-        cpu.execute(0x9010);
+        cpu.decode_execute(0x9010);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn ld_address_register() {
         uses!(cpu);
-        cpu.execute(0xAABC);
+        cpu.decode_execute(0xAABC);
         assert_eq!(0xABC, cpu.ri);
     }
 
@@ -557,7 +523,7 @@ mod tests {
     fn jp_address_offset() {
         uses!(cpu);
         cpu.v[0x0] = 2;
-        cpu.execute(0xBABC);
+        cpu.decode_execute(0xBABC);
         assert_eq!(0xABE, cpu.pc);
     }
 
@@ -565,7 +531,7 @@ mod tests {
     fn rnd_supplied_full_mask() {
         uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
-        cpu.execute(0xC0FF);
+        cpu.decode_execute(0xC0FF);
         assert_eq!(173, cpu.v[0x0]);
     }
 
@@ -573,7 +539,7 @@ mod tests {
     fn rnd_supplied_partial_mask() {
         uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
-        cpu.execute(0xC07E);
+        cpu.decode_execute(0xC07E);
         assert_eq!(44, cpu.v[0x0]);
     }
 
@@ -581,7 +547,7 @@ mod tests {
     fn rnd_supplied_no_mask() {
         uses!(cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
-        cpu.execute(0xC000);
+        cpu.decode_execute(0xC000);
         assert_eq!(0, cpu.v[0x0]);
     }
 
@@ -592,7 +558,7 @@ mod tests {
         cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
-        cpu.execute(0xD002);
+        cpu.decode_execute(0xD002);
         assert_eq!(bytes, &cpu.vbuffer[130..132]);
         assert_eq!(0, cpu.v[0xF]);
     }
@@ -604,9 +570,9 @@ mod tests {
         cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
-        cpu.execute(0xD001);
+        cpu.decode_execute(0xD001);
         cpu.ri = 0x101;
-        cpu.execute(0xD001);
+        cpu.decode_execute(0xD001);
         assert_eq!(&[0xA6], &cpu.vbuffer[130..131]);
         assert_eq!(1, cpu.v[0xF]);
     }
@@ -618,8 +584,8 @@ mod tests {
         cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
-        cpu.execute(0xD002);
-        cpu.execute(0x00E0);
+        cpu.decode_execute(0xD002);
+        cpu.decode_execute(0x00E0);
         assert_eq!(&[0x0, 0x0], &cpu.vbuffer[130..132]);
     }
 
@@ -628,7 +594,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0xB;
         cpu.keyboard.press(Key::B);
-        cpu.execute(0xE09E);
+        cpu.decode_execute(0xE09E);
         assert_eq!(0x204, cpu.pc);
     }
 
@@ -637,7 +603,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0xB;
         cpu.keyboard.press(Key::C);
-        cpu.execute(0xE09E);
+        cpu.decode_execute(0xE09E);
         assert_eq!(0x202, cpu.pc);
     }
 
@@ -646,7 +612,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0xB;
         cpu.keyboard.press(Key::C);
-        cpu.execute(0xE0A1);
+        cpu.decode_execute(0xE0A1);
         assert_eq!(0x204, cpu.pc);
     }
 
@@ -655,7 +621,7 @@ mod tests {
         uses!(cpu);
         cpu.v[0x0] = 0xB;
         cpu.keyboard.press(Key::B);
-        cpu.execute(0xE0A1);
+        cpu.decode_execute(0xE0A1);
         assert_eq!(0x202, cpu.pc);
     }
 
@@ -663,7 +629,7 @@ mod tests {
     fn ld_dt_to_register() {
         uses!(cpu);
         cpu.dt = 3;
-        cpu.execute(0xF007);
+        cpu.decode_execute(0xF007);
         assert_eq!(3, cpu.v[0x0]);
     }
 }
