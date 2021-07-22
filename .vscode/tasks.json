@@ -5,6 +5,9 @@
 			"type": "cargo",
 			"command": "clippy",
 			"label": "rust: cargo clippy",
+			"args": [
+				"--tests"
+			]
 		}
 	]
 }
