@@ -47,6 +47,33 @@ impl Cpu {
     fn execute(&mut self, opcode: Opcode) {
         self.pc += 2;
         match opcode {
+            Opcode::OP_00E0 {} => self.op_00E0(),
+            Opcode::OP_00EE {} => self.op_00EE(),
+            Opcode::OP_0nnn { nnn } => self.op_0nnn(nnn),
+            Opcode::OP_1nnn { nnn } => self.op_1nnn(nnn),
+            Opcode::OP_2nnn { nnn } => self.op_2nnn(nnn),
+            Opcode::OP_3xkk { x, kk } => self.op_3xkk(x, kk),
+            Opcode::OP_4xkk { x, kk } => self.op_4xkk(x, kk),
+            Opcode::OP_5xy0 { x, y } => self.op_5xy0(x, y),
+            Opcode::OP_6xkk { x, kk } => self.op_6xkk(x, kk),
+            Opcode::OP_7xkk { x, kk } => self.op_7xkk(x, kk),
+            Opcode::OP_8xy0 { x, y } => self.op_8xy0(x, y),
+            Opcode::OP_8xy1 { x, y } => self.op_8xy1(x, y),
+            Opcode::OP_8xy2 { x, y } => self.op_8xy2(x, y),
+            Opcode::OP_8xy3 { x, y } => self.op_8xy3(x, y),
+            Opcode::OP_8xy4 { x, y } => self.op_8xy4(x, y),
+            Opcode::OP_8xy5 { x, y } => self.op_8xy5(x, y),
+            Opcode::OP_8xy6 { x, y } => self.op_8xy6(x, y),
+            Opcode::OP_8xy7 { x, y } => self.op_8xy7(x, y),
+            Opcode::OP_8xyE { x, y } => self.op_8xyE(x, y),
+            Opcode::OP_9xy0 { x, y } => self.op_9xy0(x, y),
+            Opcode::OP_Annn { nnn } => self.op_Annn(nnn),
+            Opcode::OP_Bnnn { nnn } => self.op_Bnnn(nnn),
+            Opcode::OP_Cxkk { x, kk } => self.op_Cxkk(x, kk),
+            Opcode::OP_Dxyn { x, y, n } => self.op_Dxyn(x, y, n),
+            Opcode::OP_Ex9E { x } => self.op_Ex9E(x),
+            Opcode::OP_ExA1 { x } => self.op_ExA1(x),
+            Opcode::OP_Fx07 { x } => self.op_Fx07(x),
             _ => (),
         };
     }
