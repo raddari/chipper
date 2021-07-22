@@ -37,7 +37,7 @@ pub enum Opcode {
     OP_Fx65 { x: usize },
 }
 
-const ERR_SUPER_48: &'static str = "super Chip-48 instructions are not implemented";
+const ERR_SUPER_48: &str = "super Chip-48 instructions are not implemented";
 
 impl Opcode {
     pub fn decode(instruction: u16) -> Result<Opcode, &'static str> {
