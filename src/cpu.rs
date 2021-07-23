@@ -5,6 +5,8 @@ use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
 
+const INSTRUCTION_SIZE: usize = 2;
+
 pub struct Cpu {
     pc: usize,
     ri: usize,
@@ -14,6 +16,12 @@ pub struct Cpu {
     keyboard: Keyboard,
     vbuffer: [u8; CHIP8_VBUFFER],
     random: StdRng,
+}
+
+enum PcStatus {
+    Hop,
+    Skip,
+    Jump(usize),
 }
 
 impl Default for Cpu {
@@ -46,13 +54,12 @@ impl Cpu {
     fn decode_execute(&mut self, instruction: u16) {
         match Opcode::decode(instruction) {
             Ok(op) => self.execute(op),
-            Err(_) => self.pc += 2,
+            Err(_) => self.pc += INSTRUCTION_SIZE,
         }
     }
 
     fn execute(&mut self, opcode: Opcode) {
-        self.pc += 2;
-        match opcode {
+        let status = match opcode {
             Opcode::OP_00E0 {} => self.op_00E0(),
             Opcode::OP_00EE {} => self.op_00EE(),
             Opcode::OP_0nnn { nnn } => self.op_0nnn(nnn),
@@ -80,139 +87,150 @@ impl Cpu {
             Opcode::OP_Ex9E { x } => self.op_Ex9E(x),
             Opcode::OP_ExA1 { x } => self.op_ExA1(x),
             Opcode::OP_Fx07 { x } => self.op_Fx07(x),
-            _ => (),
+            _ => PcStatus::Hop,
         };
+
+        match status {
+            PcStatus::Hop => self.pc += INSTRUCTION_SIZE,
+            PcStatus::Skip => self.pc += 2 * INSTRUCTION_SIZE,
+            PcStatus::Jump(n) => self.pc = n,
+        }
     }
 
-    fn op_00E0(&mut self) {
+    fn op_00E0(&mut self) -> PcStatus {
         self.vbuffer.fill(0);
+        PcStatus::Hop
     }
 
-    fn op_00EE(&mut self) {
-        self.pc = match self.memory.callstack_pop() {
-            Some(n) => n,
-            None => self.pc,
-        };
+    fn op_00EE(&mut self) -> PcStatus {
+        match self.memory.callstack_pop() {
+            Some(n) => PcStatus::Jump(n),
+            None => PcStatus::Hop,
+        }
     }
 
-    fn op_0nnn(&self, _address: usize) {
+    fn op_0nnn(&self, _address: usize) -> PcStatus {
         // No implementation yet.
         // Possible: use to talk to debugger from the ROM?
+        PcStatus::Hop
     }
 
-    fn op_1nnn(&mut self, address: usize) {
-        self.pc = address;
+    fn op_1nnn(&mut self, address: usize) -> PcStatus {
+        PcStatus::Jump(address)
     }
 
-    fn op_2nnn(&mut self, address: usize) {
-        self.memory.callstack_push(self.pc);
-        self.pc = address;
+    fn op_2nnn(&mut self, address: usize) -> PcStatus {
+        self.memory.callstack_push(self.pc + 2);
+        PcStatus::Jump(address)
     }
 
-    fn op_3xkk(&mut self, x: usize, kk: u8) {
-        if kk == self.v[x] {
-            self.pc += 2;
-        }
+    fn op_3xkk(&mut self, x: usize, kk: u8) -> PcStatus {
+        self.skip_with_condition(kk == self.v[x])
     }
 
-    fn op_4xkk(&mut self, x: usize, kk: u8) {
-        if kk != self.v[x] {
-            self.pc += 2;
-        }
+    fn op_4xkk(&mut self, x: usize, kk: u8) -> PcStatus {
+        self.skip_with_condition(kk != self.v[x])
     }
 
-    fn op_5xy0(&mut self, x: usize, y: usize) {
-        if self.v[x] == self.v[y] {
-            self.pc += 2;
-        }
+    fn op_5xy0(&mut self, x: usize, y: usize) -> PcStatus {
+        self.skip_with_condition(self.v[x] == self.v[y])
     }
 
-    fn op_6xkk(&mut self, x: usize, kk: u8) {
+    fn op_6xkk(&mut self, x: usize, kk: u8) -> PcStatus {
         self.v[x] = kk;
+        PcStatus::Hop
     }
 
-    fn op_7xkk(&mut self, x: usize, kk: u8) {
+    fn op_7xkk(&mut self, x: usize, kk: u8) -> PcStatus {
         self.add_with_overflow(x, kk);
+        PcStatus::Hop
     }
 
-    fn op_8xy0(&mut self, x: usize, y: usize) {
+    fn op_8xy0(&mut self, x: usize, y: usize) -> PcStatus {
         self.v[x] = self.v[y];
+        PcStatus::Hop
     }
 
-    fn op_8xy1(&mut self, x: usize, y: usize) {
+    fn op_8xy1(&mut self, x: usize, y: usize) -> PcStatus {
         self.v[x] |= self.v[y];
+        PcStatus::Hop
     }
 
-    fn op_8xy2(&mut self, x: usize, y: usize) {
+    fn op_8xy2(&mut self, x: usize, y: usize) -> PcStatus {
         self.v[x] &= self.v[y];
+        PcStatus::Hop
     }
 
-    fn op_8xy3(&mut self, x: usize, y: usize) {
+    fn op_8xy3(&mut self, x: usize, y: usize) -> PcStatus {
         self.v[x] ^= self.v[y];
+        PcStatus::Hop
     }
 
-    fn op_8xy4(&mut self, x: usize, y: usize) {
+    fn op_8xy4(&mut self, x: usize, y: usize) -> PcStatus {
         self.add_with_overflow(x, self.v[y]);
+        PcStatus::Hop
     }
 
-    fn op_8xy5(&mut self, x: usize, y: usize) {
+    fn op_8xy5(&mut self, x: usize, y: usize) -> PcStatus {
         self.sub_with_underflow(x, x, self.v[y]);
+        PcStatus::Hop
     }
 
-    fn op_8xy6(&mut self, x: usize, _y: usize) {
+    fn op_8xy6(&mut self, x: usize, _y: usize) -> PcStatus {
         self.overflow_flag((self.v[x] & 0x1) == 1);
         self.v[x] >>= 1;
+        PcStatus::Hop
     }
 
-    fn op_8xy7(&mut self, x: usize, y: usize) {
+    fn op_8xy7(&mut self, x: usize, y: usize) -> PcStatus {
         self.sub_with_underflow(x, y, self.v[x]);
+        PcStatus::Hop
     }
 
-    fn op_8xyE(&mut self, x: usize, _y: usize) {
+    fn op_8xyE(&mut self, x: usize, _y: usize) -> PcStatus {
         self.overflow_flag((self.v[x] & 0x80) == 0x80);
         self.v[x] <<= 1;
+        PcStatus::Hop
     }
 
-    fn op_9xy0(&mut self, x: usize, y: usize) {
-        if self.v[x] != self.v[y] {
-            self.pc += 2;
-        }
+    fn op_9xy0(&mut self, x: usize, y: usize) -> PcStatus {
+        self.skip_with_condition(self.v[x] != self.v[y])
     }
 
-    fn op_Annn(&mut self, address: usize) {
+    fn op_Annn(&mut self, address: usize) -> PcStatus {
         self.ri = address;
+        PcStatus::Hop
     }
 
-    fn op_Bnnn(&mut self, address: usize) {
-        self.pc = address + self.v[0x0] as usize;
+    fn op_Bnnn(&mut self, address: usize) -> PcStatus {
+        PcStatus::Jump(address + (self.v[0x0] as usize))
     }
 
-    fn op_Cxkk(&mut self, x: usize, kk: u8) {
+    fn op_Cxkk(&mut self, x: usize, kk: u8) -> PcStatus {
         let value = (self.random.next_u32() as u8) & kk;
         self.v[x] = value;
+        PcStatus::Hop
     }
 
-    fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) {
+    fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) -> PcStatus {
         let sprite = self.memory.load(self.ri as usize, n);
         let flat = Self::flatten_index(self.v[x] as usize, self.v[y] as usize);
         let collision = self.draw_and_check_collision(flat, &sprite);
         self.overflow_flag(collision);
+        PcStatus::Hop
     }
 
-    fn op_Ex9E(&mut self, x: usize) {
-        if self.check_key(x) {
-            self.pc += 2;
-        }
+    fn op_Ex9E(&mut self, x: usize) -> PcStatus {
+        self.skip_with_condition(self.check_key(x))
     }
 
-    fn op_ExA1(&mut self, x: usize) {
-        if !self.check_key(x) {
-            self.pc += 2;
-        }
+    fn op_ExA1(&mut self, x: usize) -> PcStatus {
+        self.skip_with_condition(!self.check_key(x))
     }
 
-    fn op_Fx07(&mut self, x: usize) {
+    fn op_Fx07(&mut self, x: usize) -> PcStatus {
         self.v[x] = self.dt;
+        PcStatus::Hop
     }
 
     fn check_key(&self, src: usize) -> bool {
@@ -238,6 +256,13 @@ impl Cpu {
 
     fn flatten_index(x: usize, y: usize) -> usize {
         y * CHIP8_WIDTH + x
+    }
+
+    fn skip_with_condition(&self, condition: bool) -> PcStatus {
+        if condition {
+            return PcStatus::Skip;
+        }
+        PcStatus::Hop
     }
 
     fn overflow_flag(&mut self, condition: bool) {
