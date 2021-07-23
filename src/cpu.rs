@@ -37,6 +37,12 @@ impl Cpu {
         }
     }
 
+    fn tick(&mut self) {
+        let bytes = self.memory.load(self.pc as usize, 2);
+        let instruction = ((bytes[0] as u16) << 8) | (bytes[1] as u16);
+        self.decode_execute(instruction);
+    }
+
     fn decode_execute(&mut self, instruction: u16) {
         match Opcode::decode(instruction) {
             Ok(op) => self.execute(op),
@@ -658,5 +664,18 @@ mod tests {
         cpu.dt = 3;
         cpu.decode_execute(0xF007);
         assert_eq!(3, cpu.v[0x0]);
+    }
+
+    #[test]
+    fn ld_register_wait_for_key() {
+        uses!(cpu);
+        cpu.memory.store(0x200, &[0xF0, 0x0A]);
+        cpu.tick();
+        assert_eq!(0x200, cpu.pc);
+
+        cpu.keyboard.press(Key::B);
+        cpu.tick();
+        assert_eq!(0x202, cpu.pc);
+        assert_eq!(0xB, cpu.v[0x0]);
     }
 }
