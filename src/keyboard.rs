@@ -50,4 +50,8 @@ impl Keyboard {
             None => false,
         }
     }
+
+    pub fn get_pressed(&self) -> Option<Key> {
+        self.pressed_key
+    }
 }
