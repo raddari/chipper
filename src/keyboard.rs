@@ -3,7 +3,7 @@ use enum_ordinalize::*;
 #[derive(Clone, Copy, Ordinalize)]
 #[repr(usize)]
 pub enum Key {
-    ZERO,
+    ZERO = 0,
     ONE,
     TWO,
     THREE,
