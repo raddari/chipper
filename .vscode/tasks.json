@@ -8,6 +8,21 @@
 			"args": [
 				"--tests"
 			]
-		}
+		},
+		{
+			"type": "cargo",
+			"command": "test",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "test",
+			"label": "rust: cargo test",
+			"args": [
+				"test",
+				"--no-run",
+				"--lib",
+				"--package=chipper"
+			],
+		},
 	]
 }
