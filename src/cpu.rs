@@ -2,8 +2,7 @@ use crate::keyboard::{Key, Keyboard};
 use crate::memory::Memory;
 use crate::opcode::Opcode;
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
-use rand::prelude::{SeedableRng, StdRng};
-use rand::RngCore;
+use rand::prelude::*;
 
 const INSTRUCTION_SIZE: usize = 2;
 
