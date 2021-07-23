@@ -11,6 +11,7 @@ pub struct Cpu {
     ri: usize,
     v: [u8; 16],
     dt: u8,
+    st: u8,
     memory: Memory,
     keyboard: Keyboard,
     vbuffer: [u8; CHIP8_VBUFFER],
@@ -38,6 +39,7 @@ impl Cpu {
             ri: 0,
             v: [0; 16],
             dt: 0,
+            st: 0,
             memory,
             keyboard,
             vbuffer: [0; CHIP8_VBUFFER],
@@ -89,6 +91,7 @@ impl Cpu {
             Opcode::OP_Fx07 { x } => self.op_Fx07(x),
             Opcode::OP_Fx0A { x } => self.op_Fx0A(x),
             Opcode::OP_Fx15 { x } => self.op_Fx15(x),
+            Opcode::OP_Fx18 { x } => self.op_Fx18(x),
             _ => PcStatus::Hop,
         };
 
@@ -245,6 +248,11 @@ impl Cpu {
 
     fn op_Fx15(&mut self, x: usize) -> PcStatus {
         self.dt = self.v[x];
+        PcStatus::Hop
+    }
+
+    fn op_Fx18(&mut self, x: usize) -> PcStatus {
+        self.st = self.v[x];
         PcStatus::Hop
     }
 
@@ -726,5 +734,13 @@ mod tests {
         cpu.v[0x0] = 45;
         cpu.decode_execute(0xF015);
         assert_eq!(45, cpu.dt);
+    }
+
+    #[test]
+    fn ld_register_to_st() {
+        uses!(cpu);
+        cpu.v[0x0] = 45;
+        cpu.decode_execute(0xF018);
+        assert_eq!(45, cpu.st);
     }
 }
