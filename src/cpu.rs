@@ -92,6 +92,7 @@ impl Cpu {
             Opcode::OP_Fx0A { x } => self.op_Fx0A(x),
             Opcode::OP_Fx15 { x } => self.op_Fx15(x),
             Opcode::OP_Fx18 { x } => self.op_Fx18(x),
+            Opcode::OP_Fx1E { x } => self.op_Fx1E(x),
             _ => PcStatus::Hop,
         };
 
@@ -253,6 +254,11 @@ impl Cpu {
 
     fn op_Fx18(&mut self, x: usize) -> PcStatus {
         self.st = self.v[x];
+        PcStatus::Hop
+    }
+
+    fn op_Fx1E(&mut self, x: usize) -> PcStatus {
+        self.ri += self.v[x] as usize;
         PcStatus::Hop
     }
 
@@ -742,5 +748,14 @@ mod tests {
         cpu.v[0x0] = 45;
         cpu.decode_execute(0xF018);
         assert_eq!(45, cpu.st);
+    }
+
+    #[test]
+    fn add_register_to_address() {
+        uses!(cpu);
+        cpu.ri = 24;
+        cpu.v[0x0] = 32;
+        cpu.decode_execute(0xF01E);
+        assert_eq!(56, cpu.ri);
     }
 }
