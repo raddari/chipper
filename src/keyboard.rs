@@ -1,7 +1,7 @@
 use enum_ordinalize::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, Ordinalize)]
-#[repr(usize)]
+#[repr(u8)]
 pub enum Key {
     ZERO = 0,
     ONE,
