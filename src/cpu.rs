@@ -6,8 +6,8 @@ use rand::prelude::{SeedableRng, StdRng};
 use rand::RngCore;
 
 pub struct Cpu {
-    pc: u16,
-    ri: u16,
+    pc: usize,
+    ri: usize,
     v: [u8; 16],
     dt: u8,
     memory: Memory,
@@ -95,16 +95,16 @@ impl Cpu {
         };
     }
 
-    fn op_0nnn(&self, _address: u16) {
+    fn op_0nnn(&self, _address: usize) {
         // No implementation yet.
         // Possible: use to talk to debugger from the ROM?
     }
 
-    fn op_1nnn(&mut self, address: u16) {
+    fn op_1nnn(&mut self, address: usize) {
         self.pc = address;
     }
 
-    fn op_2nnn(&mut self, address: u16) {
+    fn op_2nnn(&mut self, address: usize) {
         self.memory.callstack_push(self.pc);
         self.pc = address;
     }
@@ -179,12 +179,12 @@ impl Cpu {
         }
     }
 
-    fn op_Annn(&mut self, address: u16) {
+    fn op_Annn(&mut self, address: usize) {
         self.ri = address;
     }
 
-    fn op_Bnnn(&mut self, address: u16) {
-        self.pc = address + self.v[0x0] as u16;
+    fn op_Bnnn(&mut self, address: usize) {
+        self.pc = address + self.v[0x0] as usize;
     }
 
     fn op_Cxkk(&mut self, x: usize, kk: u8) {

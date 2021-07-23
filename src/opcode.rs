@@ -2,9 +2,9 @@
 pub enum Opcode {
     OP_00E0 {},
     OP_00EE {},
-    OP_0nnn { nnn: u16 },
-    OP_1nnn { nnn: u16 },
-    OP_2nnn { nnn: u16 },
+    OP_0nnn { nnn: usize },
+    OP_1nnn { nnn: usize },
+    OP_2nnn { nnn: usize },
     OP_3xkk { x: usize, kk: u8 },
     OP_4xkk { x: usize, kk: u8 },
     OP_5xy0 { x: usize, y: usize },
@@ -20,8 +20,8 @@ pub enum Opcode {
     OP_8xy7 { x: usize, y: usize },
     OP_8xyE { x: usize, y: usize },
     OP_9xy0 { x: usize, y: usize },
-    OP_Annn { nnn: u16 },
-    OP_Bnnn { nnn: u16 },
+    OP_Annn { nnn: usize },
+    OP_Bnnn { nnn: usize },
     OP_Cxkk { x: usize, kk: u8 },
     OP_Dxyn { x: usize, y: usize, n: usize },
     OP_Ex9E { x: usize },
@@ -43,7 +43,7 @@ impl Opcode {
     pub fn decode(instruction: u16) -> Result<Opcode, &'static str> {
         let nibbles = Self::unpack_nibbles(instruction);
         let (_, x, y, n) = nibbles;
-        let nnn = (instruction & 0x0FFF) as u16;
+        let nnn = (instruction & 0x0FFF) as usize;
         let kk = (instruction & 0x00FF) as u8;
 
         use Opcode::*;

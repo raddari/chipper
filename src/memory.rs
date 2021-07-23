@@ -3,7 +3,7 @@ use crate::CHIP8_RAM;
 #[derive(Debug)]
 pub struct Memory {
     bytes: [u8; CHIP8_RAM],
-    callstack: Vec<u16>,
+    callstack: Vec<usize>,
 }
 
 impl Default for Memory {
@@ -32,11 +32,11 @@ impl Memory {
         self.callstack.is_empty()
     }
 
-    pub fn callstack_push(&mut self, address: u16) {
+    pub fn callstack_push(&mut self, address: usize) {
         self.callstack.push(address);
     }
 
-    pub fn callstack_pop(&mut self) -> Option<u16> {
+    pub fn callstack_pop(&mut self) -> Option<usize> {
         self.callstack.pop()
     }
 }
