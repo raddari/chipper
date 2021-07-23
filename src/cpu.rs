@@ -19,6 +19,7 @@ pub struct Cpu {
 }
 
 enum PcStatus {
+    Wait,
     Hop,
     Skip,
     Jump(usize),
@@ -87,10 +88,12 @@ impl Cpu {
             Opcode::OP_Ex9E { x } => self.op_Ex9E(x),
             Opcode::OP_ExA1 { x } => self.op_ExA1(x),
             Opcode::OP_Fx07 { x } => self.op_Fx07(x),
+            Opcode::OP_Fx0A { x } => self.op_Fx0A(x),
             _ => PcStatus::Hop,
         };
 
         match status {
+            PcStatus::Wait => (),
             PcStatus::Hop => self.pc += INSTRUCTION_SIZE,
             PcStatus::Skip => self.pc += 2 * INSTRUCTION_SIZE,
             PcStatus::Jump(n) => self.pc = n,
@@ -230,8 +233,18 @@ impl Cpu {
         PcStatus::Hop
     }
 
+    fn op_Fx0A(&mut self, x: usize) -> PcStatus {
+        match self.keyboard.get_pressed() {
+            Some(k) => {
+                self.v[x] = k as u8;
+                PcStatus::Hop
+            }
+            None => PcStatus::Wait,
+        }
+    }
+
     fn check_key(&self, src: usize) -> bool {
-        match Key::from_ordinal(self.v[src] as usize) {
+        match Key::from_ordinal(self.v[src]) {
             Some(key) => self.keyboard.is_pressed(key),
             None => false,
         }
