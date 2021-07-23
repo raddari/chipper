@@ -46,7 +46,7 @@ impl Cpu {
     }
 
     fn tick(&mut self) {
-        let bytes = self.memory.load(self.pc as usize, 2);
+        let bytes = self.memory.load(self.pc, INSTRUCTION_SIZE);
         let instruction = ((bytes[0] as u16) << 8) | (bytes[1] as u16);
         self.decode_execute(instruction);
     }
@@ -120,7 +120,7 @@ impl Cpu {
     }
 
     fn op_2nnn(&mut self, address: usize) -> PcStatus {
-        self.memory.callstack_push(self.pc + 2);
+        self.memory.callstack_push(self.pc + INSTRUCTION_SIZE);
         PcStatus::Jump(address)
     }
 
@@ -167,13 +167,11 @@ impl Cpu {
     }
 
     fn op_8xy4(&mut self, x: usize, y: usize) -> PcStatus {
-        self.add_with_overflow(x, self.v[y]);
-        PcStatus::Hop
+        self.add_with_overflow(x, self.v[y])
     }
 
     fn op_8xy5(&mut self, x: usize, y: usize) -> PcStatus {
-        self.sub_with_underflow(x, x, self.v[y]);
-        PcStatus::Hop
+        self.sub_with_underflow(x, x, self.v[y])
     }
 
     fn op_8xy6(&mut self, x: usize, _y: usize) -> PcStatus {
@@ -183,8 +181,7 @@ impl Cpu {
     }
 
     fn op_8xy7(&mut self, x: usize, y: usize) -> PcStatus {
-        self.sub_with_underflow(x, y, self.v[x]);
-        PcStatus::Hop
+        self.sub_with_underflow(x, y, self.v[x])
     }
 
     fn op_8xyE(&mut self, x: usize, _y: usize) -> PcStatus {
@@ -269,19 +266,20 @@ impl Cpu {
         self.v[0xF] = condition as u8;
     }
 
-    fn sub_with_underflow(&mut self, dest: usize, src: usize, kk: u8) {
-        self.add_with_overflow_dest(dest, src, u8::MAX - kk + 1);
+    fn sub_with_underflow(&mut self, dest: usize, src: usize, kk: u8) -> PcStatus {
+        self.add_with_overflow_dest(dest, src, u8::MAX - kk + 1)
     }
 
-    fn add_with_overflow(&mut self, x: usize, kk: u8) {
-        self.add_with_overflow_dest(x, x, kk);
+    fn add_with_overflow(&mut self, x: usize, kk: u8) -> PcStatus {
+        self.add_with_overflow_dest(x, x, kk)
     }
 
-    fn add_with_overflow_dest(&mut self, dest: usize, src: usize, kk: u8) {
+    fn add_with_overflow_dest(&mut self, dest: usize, src: usize, kk: u8) -> PcStatus {
         let mut value = self.v[src] as u16;
         value += kk as u16;
         self.overflow_flag(value > 0xFF);
         self.v[dest] = value as u8;
+        PcStatus::Hop
     }
 }
 
