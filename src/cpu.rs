@@ -89,6 +89,7 @@ impl Cpu {
             Opcode::OP_ExA1 { x } => self.op_ExA1(x),
             Opcode::OP_Fx07 { x } => self.op_Fx07(x),
             Opcode::OP_Fx0A { x } => self.op_Fx0A(x),
+            Opcode::OP_Fx15 { x } => self.op_Fx15(x),
             _ => PcStatus::Hop,
         };
 
@@ -241,6 +242,11 @@ impl Cpu {
             }
             None => PcStatus::Wait,
         }
+    }
+
+    fn op_Fx15(&mut self, x: usize) -> PcStatus {
+        self.dt = self.v[x];
+        PcStatus::Hop
     }
 
     fn check_key(&self, src: usize) -> bool {
@@ -713,5 +719,13 @@ mod tests {
         cpu.tick();
         assert_eq!(0x202, cpu.pc);
         assert_eq!(0xB, cpu.v[0x0]);
+    }
+
+    #[test]
+    fn ld_register_to_dt() {
+        uses!(cpu);
+        cpu.v[0x0] = 45;
+        cpu.decode_execute(0xF015);
+        assert_eq!(45, cpu.dt);
     }
 }
