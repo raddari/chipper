@@ -1,6 +1,6 @@
 use enum_ordinalize::*;
 
-#[derive(Clone, Copy, Ordinalize)]
+#[derive(Clone, Copy, PartialEq, Eq, Ordinalize)]
 #[repr(usize)]
 pub enum Key {
     ZERO = 0,
@@ -22,7 +22,7 @@ pub enum Key {
 }
 
 pub struct Keyboard {
-    keystate: [bool; 16],
+    pressed_key: Option<Key>,
 }
 
 impl Default for Keyboard {
@@ -33,24 +33,21 @@ impl Default for Keyboard {
 
 impl Keyboard {
     pub fn new() -> Self {
-        Keyboard {
-            keystate: [false; 16],
-        }
+        Keyboard { pressed_key: None }
     }
 
     pub fn press(&mut self, key: Key) {
-        self.keystate[key.ordinal()] = true;
+        self.pressed_key = Some(key);
     }
 
-    pub fn release(&mut self, key: Key) {
-        self.keystate[key.ordinal()] = false;
+    pub fn release(&mut self) {
+        self.pressed_key = None;
     }
 
     pub fn is_pressed(&self, key: Key) -> bool {
-        self.keystate[key.ordinal()]
-    }
-
-    pub fn clear(&mut self) {
-        self.keystate.fill(false);
+        match self.pressed_key {
+            Some(k) => k == key,
+            None => false,
+        }
     }
 }
