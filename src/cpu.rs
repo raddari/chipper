@@ -93,6 +93,7 @@ impl Cpu {
             Opcode::OP_Fx15 { x } => self.op_Fx15(x),
             Opcode::OP_Fx18 { x } => self.op_Fx18(x),
             Opcode::OP_Fx1E { x } => self.op_Fx1E(x),
+            Opcode::OP_Fx33 { x } => self.op_Fx33(x),
             _ => PcStatus::Hop,
         };
 
@@ -259,6 +260,13 @@ impl Cpu {
 
     fn op_Fx1E(&mut self, x: usize) -> PcStatus {
         self.ri += self.v[x] as usize;
+        PcStatus::Hop
+    }
+
+    fn op_Fx33(&mut self, x: usize) -> PcStatus {
+        let vx = self.v[x];
+        let bcd = &[(vx / 100) % 10, (vx / 10) % 10, vx % 10];
+        self.memory.store(self.ri, bcd);
         PcStatus::Hop
     }
 
@@ -757,5 +765,17 @@ mod tests {
         cpu.v[0x0] = 32;
         cpu.decode_execute(0xF01E);
         assert_eq!(56, cpu.ri);
+    }
+
+    #[test]
+    fn ld_bcd_register() {
+        uses!(cpu);
+        cpu.v[0x0] = 123;
+        cpu.ri = 0x300;
+        cpu.decode_execute(0xF033);
+        let bcd = cpu.memory.load(0x300, 3);
+        assert_eq!(1, bcd[0]);
+        assert_eq!(2, bcd[1]);
+        assert_eq!(3, bcd[2]);
     }
 }
