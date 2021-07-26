@@ -94,6 +94,7 @@ impl Cpu {
             Opcode::OP_Fx18 { x } => self.op_Fx18(x),
             Opcode::OP_Fx1E { x } => self.op_Fx1E(x),
             Opcode::OP_Fx33 { x } => self.op_Fx33(x),
+            Opcode::OP_Fx55 { x } => self.op_Fx55(x),
             _ => PcStatus::Hop,
         };
 
@@ -267,6 +268,11 @@ impl Cpu {
         let vx = self.v[x];
         let bcd = &[(vx / 100) % 10, (vx / 10) % 10, vx % 10];
         self.memory.store(self.ri, bcd);
+        PcStatus::Hop
+    }
+
+    fn op_Fx55(&mut self, x: usize) -> PcStatus {
+        self.memory.store(self.ri, &self.v[0..x + 1]);
         PcStatus::Hop
     }
 
@@ -777,5 +783,17 @@ mod tests {
         assert_eq!(1, bcd[0]);
         assert_eq!(2, bcd[1]);
         assert_eq!(3, bcd[2]);
+    }
+
+    #[test]
+    fn sd_registers() {
+        uses!(cpu);
+        cpu.ri = 0x300;
+        cpu.v[0x0] = 23;
+        cpu.v[0x9] = 2;
+        cpu.v[0xF] = 1;
+        cpu.decode_execute(0xFF55);
+        let mem = cpu.memory.load(0x300, 16);
+        assert_eq!(vec![23, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1], mem);
     }
 }
