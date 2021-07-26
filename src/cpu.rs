@@ -95,6 +95,7 @@ impl Cpu {
             Opcode::OP_Fx1E { x } => self.op_Fx1E(x),
             Opcode::OP_Fx33 { x } => self.op_Fx33(x),
             Opcode::OP_Fx55 { x } => self.op_Fx55(x),
+            Opcode::OP_Fx65 { x } => self.op_Fx65(x),
             _ => PcStatus::Hop,
         };
 
@@ -273,6 +274,12 @@ impl Cpu {
 
     fn op_Fx55(&mut self, x: usize) -> PcStatus {
         self.memory.store(self.ri, &self.v[0..x + 1]);
+        PcStatus::Hop
+    }
+
+    fn op_Fx65(&mut self, x: usize) -> PcStatus {
+        let regs = self.memory.load(self.ri, x + 1);
+        self.v.copy_from_slice(&regs);
         PcStatus::Hop
     }
 
@@ -795,5 +802,19 @@ mod tests {
         cpu.decode_execute(0xFF55);
         let mem = cpu.memory.load(0x300, 16);
         assert_eq!(vec![23, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1], mem);
+    }
+
+    #[test]
+    fn ld_registers() {
+        uses!(cpu);
+        cpu.ri = 0x300;
+        cpu.memory.store(
+            cpu.ri,
+            &vec![23, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1],
+        );
+        cpu.decode_execute(0xFF65);
+        assert_eq!(23, cpu.v[0x0]);
+        assert_eq!(2, cpu.v[0x9]);
+        assert_eq!(1, cpu.v[0xF]);
     }
 }
