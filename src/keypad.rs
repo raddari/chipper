@@ -21,19 +21,14 @@ pub enum Key {
     F,
 }
 
-pub struct Keyboard {
+#[derive(Default)]
+pub struct Keypad {
     pressed_key: Option<Key>,
 }
 
-impl Default for Keyboard {
-    fn default() -> Self {
-        Keyboard::new()
-    }
-}
-
-impl Keyboard {
+impl Keypad {
     pub fn new() -> Self {
-        Keyboard { pressed_key: None }
+        Keypad { pressed_key: None }
     }
 
     pub fn press(&mut self, key: Key) {

@@ -1,4 +1,4 @@
-use crate::keyboard::{Key, Keyboard};
+use crate::keypad::{Key, Keypad};
 use crate::memory::Memory;
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::*;
@@ -13,7 +13,7 @@ pub struct Cpu {
     dt: u8,
     st: u8,
     memory: Memory,
-    keyboard: Keyboard,
+    keyboard: Keypad,
     vbuffer: [u8; CHIP8_VBUFFER],
     random: StdRng,
 }
@@ -27,13 +27,13 @@ enum PcResult {
 
 impl Default for Cpu {
     fn default() -> Self {
-        Cpu::new(Memory::new(), Keyboard::new())
+        Cpu::new(Memory::new(), Keypad::new())
     }
 }
 
 #[allow(non_snake_case)]
 impl Cpu {
-    pub fn new(memory: Memory, keyboard: Keyboard) -> Self {
+    pub fn new(memory: Memory, keyboard: Keypad) -> Self {
         Cpu {
             pc: 0x200,
             ri: 0,
@@ -368,7 +368,7 @@ mod tests {
 
     macro_rules! uses {
         ($cpu_var:ident) => {
-            let mut $cpu_var = Cpu::new(Memory::new(), Keyboard::new());
+            let mut $cpu_var = Cpu::new(Memory::new(), Keypad::new());
         };
     }
 
