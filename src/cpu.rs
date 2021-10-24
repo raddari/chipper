@@ -1,4 +1,4 @@
-use crate::keypad::{Key, Keypad};
+use crate::keypad::{ChipKey, Keypad};
 use crate::memory::Memory;
 use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::*;
@@ -309,7 +309,7 @@ impl Cpu {
     }
 
     fn check_key(&self, src: usize) -> bool {
-        match Key::from_ordinal(self.v[src]) {
+        match ChipKey::from_byte(self.v[src]) {
             Some(key) => self.keyboard.is_pressed(key),
             None => false,
         }
@@ -361,13 +361,15 @@ impl Cpu {
 }
 
 #[cfg(test)]
-#[allow(unused_mut)]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
     macro_rules! uses {
         ($cpu_var:ident) => {
+            let $cpu_var = Cpu::new(Memory::new(), Keypad::new());
+        };
+        (mut $cpu_var:ident) => {
             let mut $cpu_var = Cpu::new(Memory::new(), Keypad::new());
         };
     }
@@ -380,21 +382,21 @@ mod tests {
 
     #[test]
     fn decode_execute_normally_increments_pc() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.decode_execute(0x6000);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn ld_constant_to_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.decode_execute(0x6075);
         assert_eq!(0x75, cpu.v[0x0]);
     }
 
     #[test]
     fn add_constant_to_register_normal() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 1;
         cpu.decode_execute(0x7001);
         assert_eq!(2, cpu.v[0x0]);
@@ -403,7 +405,7 @@ mod tests {
 
     #[test]
     fn add_constant_to_register_overflow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0xFF;
         cpu.decode_execute(0x7001);
         assert_eq!(0, cpu.v[0x0]);
@@ -412,7 +414,7 @@ mod tests {
 
     #[test]
     fn add_register_to_register_normal() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
         cpu.decode_execute(0x8014);
@@ -422,7 +424,7 @@ mod tests {
 
     #[test]
     fn add_register_to_register_overflow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0xFF;
         cpu.v[0x1] = 1;
         cpu.decode_execute(0x8014);
@@ -432,21 +434,21 @@ mod tests {
 
     #[test]
     fn jp_sets_pc() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.decode_execute(0x1ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn call_sets_pc() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.decode_execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
     }
 
     #[test]
     fn ret_pops_pc() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.decode_execute(0x2ABC);
         cpu.decode_execute(0x00EE);
         assert_eq!(0x202, cpu.pc);
@@ -454,7 +456,7 @@ mod tests {
 
     #[test]
     fn call_ret_nested() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.decode_execute(0x2678);
         cpu.decode_execute(0x2ABC);
         assert_eq!(0xABC, cpu.pc);
@@ -468,7 +470,7 @@ mod tests {
 
     #[test]
     fn se_constant_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.decode_execute(0x3020);
         assert_eq!(0x204, cpu.pc);
@@ -476,7 +478,7 @@ mod tests {
 
     #[test]
     fn se_constant_no_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.decode_execute(0x3021);
         assert_eq!(0x202, cpu.pc);
@@ -484,7 +486,7 @@ mod tests {
 
     #[test]
     fn sne_constant_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.decode_execute(0x4021);
         assert_eq!(0x204, cpu.pc);
@@ -492,7 +494,7 @@ mod tests {
 
     #[test]
     fn sne_constant_no_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.decode_execute(0x4020);
         assert_eq!(0x202, cpu.pc);
@@ -500,7 +502,7 @@ mod tests {
 
     #[test]
     fn se_register_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 32;
         cpu.decode_execute(0x5010);
@@ -509,7 +511,7 @@ mod tests {
 
     #[test]
     fn se_register_no_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.v[0x1] = 33;
         cpu.decode_execute(0x5010);
@@ -518,7 +520,7 @@ mod tests {
 
     #[test]
     fn ld_register_to_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.decode_execute(0x8100);
         assert_eq!(32, cpu.v[0x1]);
@@ -526,7 +528,7 @@ mod tests {
 
     #[test]
     fn or_register_to_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
         cpu.decode_execute(0x8011);
@@ -535,7 +537,7 @@ mod tests {
 
     #[test]
     fn and_register_to_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
         cpu.decode_execute(0x8012);
@@ -544,7 +546,7 @@ mod tests {
 
     #[test]
     fn xor_register_to_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0x55;
         cpu.v[0x1] = 0x3C;
         cpu.decode_execute(0x8013);
@@ -553,7 +555,7 @@ mod tests {
 
     #[test]
     fn sub_register_to_register_no_borrow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
         cpu.decode_execute(0x8015);
@@ -563,7 +565,7 @@ mod tests {
 
     #[test]
     fn sub_register_to_register_borrow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
         cpu.decode_execute(0x8015);
@@ -573,7 +575,7 @@ mod tests {
 
     #[test]
     fn srl_no_underflow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 32;
         cpu.decode_execute(0x8006);
         assert_eq!(16, cpu.v[0x0]);
@@ -582,7 +584,7 @@ mod tests {
 
     #[test]
     fn srl_underflow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 31;
         cpu.decode_execute(0x8006);
         assert_eq!(15, cpu.v[0x0]);
@@ -591,7 +593,7 @@ mod tests {
 
     #[test]
     fn subn_no_borrow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 7;
         cpu.v[0x1] = 21;
         cpu.decode_execute(0x8017);
@@ -601,7 +603,7 @@ mod tests {
 
     #[test]
     fn subn_borrow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 21;
         cpu.v[0x1] = 7;
         cpu.decode_execute(0x8017);
@@ -611,7 +613,7 @@ mod tests {
 
     #[test]
     fn sll_no_overflow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0x7F;
         cpu.decode_execute(0x800E);
         assert_eq!(0xFE, cpu.v[0x0]);
@@ -620,7 +622,7 @@ mod tests {
 
     #[test]
     fn sll_overflow() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0xFF;
         cpu.decode_execute(0x800E);
         assert_eq!(0xFE, cpu.v[0x0]);
@@ -629,7 +631,7 @@ mod tests {
 
     #[test]
     fn sne_register_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 2;
         cpu.decode_execute(0x9010);
@@ -638,7 +640,7 @@ mod tests {
 
     #[test]
     fn sne_register_no_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 1;
         cpu.v[0x1] = 1;
         cpu.decode_execute(0x9010);
@@ -647,14 +649,14 @@ mod tests {
 
     #[test]
     fn ld_address_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.decode_execute(0xAABC);
         assert_eq!(0xABC, cpu.ri);
     }
 
     #[test]
     fn jp_address_offset() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 2;
         cpu.decode_execute(0xBABC);
         assert_eq!(0xABE, cpu.pc);
@@ -662,7 +664,7 @@ mod tests {
 
     #[test]
     fn rnd_supplied_full_mask() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
         cpu.decode_execute(0xC0FF);
         assert_eq!(173, cpu.v[0x0]);
@@ -670,7 +672,7 @@ mod tests {
 
     #[test]
     fn rnd_supplied_partial_mask() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
         cpu.decode_execute(0xC07E);
         assert_eq!(44, cpu.v[0x0]);
@@ -678,7 +680,7 @@ mod tests {
 
     #[test]
     fn rnd_supplied_no_mask() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.random = StdRng::seed_from_u64(0x13375EED);
         cpu.decode_execute(0xC000);
         assert_eq!(0, cpu.v[0x0]);
@@ -686,7 +688,7 @@ mod tests {
 
     #[test]
     fn drw_two_byte_sprite_no_overlap() {
-        uses!(cpu);
+        uses!(mut cpu);
         let bytes = &[0x9A, 0x3C];
         cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
@@ -698,7 +700,7 @@ mod tests {
 
     #[test]
     fn drw_two_byte_sprite_overlap() {
-        uses!(cpu);
+        uses!(mut cpu);
         let bytes = &[0x9A, 0x3C];
         cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
@@ -712,7 +714,7 @@ mod tests {
 
     #[test]
     fn cls_empties_vbuffer() {
-        uses!(cpu);
+        uses!(mut cpu);
         let bytes = &[0x9A, 0x3C];
         cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
@@ -724,43 +726,43 @@ mod tests {
 
     #[test]
     fn skp_register_keyboard_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0xB;
-        cpu.keyboard.press(Key::B);
+        cpu.keyboard.press(ChipKey::CK_B);
         cpu.decode_execute(0xE09E);
         assert_eq!(0x204, cpu.pc);
     }
 
     #[test]
     fn skp_register_keyboard_no_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0xB;
-        cpu.keyboard.press(Key::C);
+        cpu.keyboard.press(ChipKey::CK_C);
         cpu.decode_execute(0xE09E);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn sknp_register_keyboard_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0xB;
-        cpu.keyboard.press(Key::C);
+        cpu.keyboard.press(ChipKey::CK_C);
         cpu.decode_execute(0xE0A1);
         assert_eq!(0x204, cpu.pc);
     }
 
     #[test]
     fn sknp_register_keyboard_no_skip() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 0xB;
-        cpu.keyboard.press(Key::B);
+        cpu.keyboard.press(ChipKey::CK_B);
         cpu.decode_execute(0xE0A1);
         assert_eq!(0x202, cpu.pc);
     }
 
     #[test]
     fn ld_dt_to_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.dt = 3;
         cpu.decode_execute(0xF007);
         assert_eq!(3, cpu.v[0x0]);
@@ -768,12 +770,12 @@ mod tests {
 
     #[test]
     fn ld_register_wait_for_key() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.memory.store(0x200, &[0xF0, 0x0A]);
         cpu.tick();
         assert_eq!(0x200, cpu.pc);
 
-        cpu.keyboard.press(Key::B);
+        cpu.keyboard.press(ChipKey::CK_B);
         cpu.tick();
         assert_eq!(0x202, cpu.pc);
         assert_eq!(0xB, cpu.v[0x0]);
@@ -781,7 +783,7 @@ mod tests {
 
     #[test]
     fn ld_register_to_dt() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 45;
         cpu.decode_execute(0xF015);
         assert_eq!(45, cpu.dt);
@@ -789,7 +791,7 @@ mod tests {
 
     #[test]
     fn ld_register_to_st() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 45;
         cpu.decode_execute(0xF018);
         assert_eq!(45, cpu.st);
@@ -797,7 +799,7 @@ mod tests {
 
     #[test]
     fn add_register_to_address() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.ri = 24;
         cpu.v[0x0] = 32;
         cpu.decode_execute(0xF01E);
@@ -806,7 +808,7 @@ mod tests {
 
     #[test]
     fn ld_bcd_register() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.v[0x0] = 123;
         cpu.ri = 0x300;
         cpu.decode_execute(0xF033);
@@ -818,7 +820,7 @@ mod tests {
 
     #[test]
     fn sd_registers() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.ri = 0x300;
         cpu.v[0x0] = 23;
         cpu.v[0x9] = 2;
@@ -830,12 +832,10 @@ mod tests {
 
     #[test]
     fn ld_registers() {
-        uses!(cpu);
+        uses!(mut cpu);
         cpu.ri = 0x300;
-        cpu.memory.store(
-            cpu.ri,
-            &[23, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1],
-        );
+        cpu.memory
+            .store(cpu.ri, &[23, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1]);
         cpu.decode_execute(0xFF65);
         assert_eq!(23, cpu.v[0x0]);
         assert_eq!(2, cpu.v[0x9]);
