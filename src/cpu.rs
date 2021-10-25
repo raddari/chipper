@@ -141,7 +141,7 @@ impl Cpu {
     }
 
     fn op_00EE(&mut self) -> PcResult {
-        match self.memory.callstack_pop() {
+        match self.memory.pop() {
             Some(n) => Jump(n),
             None => Hop,
         }
@@ -158,7 +158,7 @@ impl Cpu {
     }
 
     fn op_2nnn(&mut self, address: usize) -> PcResult {
-        self.memory.callstack_push(self.pc + INSTRUCTION_SIZE);
+        self.memory.push(self.pc + INSTRUCTION_SIZE);
         Jump(address)
     }
 

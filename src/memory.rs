@@ -27,15 +27,15 @@ impl Memory {
         self.bytes[offset..offset + data.len()].copy_from_slice(data);
     }
 
-    pub fn callstack_empty(&self) -> bool {
+    pub fn is_callstack_empty(&self) -> bool {
         self.callstack.is_empty()
     }
 
-    pub fn callstack_push(&mut self, address: usize) {
+    pub fn push(&mut self, address: usize) {
         self.callstack.push(address);
     }
 
-    pub fn callstack_pop(&mut self) -> Option<usize> {
+    pub fn pop(&mut self) -> Option<usize> {
         self.callstack.pop()
     }
 }
