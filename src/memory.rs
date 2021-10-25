@@ -1,6 +1,5 @@
-use crate::CHIP8_RAM;
+pub const CHIP8_RAM: usize = 4096;
 
-#[derive(Debug)]
 pub struct Memory {
     bytes: [u8; CHIP8_RAM],
     callstack: Vec<usize>,

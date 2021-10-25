@@ -1,6 +1,6 @@
+use crate::graphics::Graphics;
 use crate::keypad::{ChipKey, Keypad};
 use crate::memory::Memory;
-use crate::{CHIP8_VBUFFER, CHIP8_WIDTH};
 use rand::prelude::*;
 use PcResult::*;
 
@@ -14,7 +14,7 @@ pub struct Cpu {
     st: u8,
     memory: Memory,
     keyboard: Keypad,
-    vbuffer: [u8; CHIP8_VBUFFER],
+    graphics: Graphics,
     random: StdRng,
 }
 
@@ -25,15 +25,26 @@ enum PcResult {
     Jump(usize),
 }
 
+impl PcResult {
+    fn apply(&self, pc: usize) -> usize {
+        match self {
+            Self::Wait => pc,
+            Self::Hop => pc + INSTRUCTION_SIZE,
+            Self::Skip => pc + 2 * INSTRUCTION_SIZE,
+            Self::Jump(n) => *n,
+        }
+    }
+}
+
 impl Default for Cpu {
     fn default() -> Self {
-        Cpu::new(Memory::new(), Keypad::new())
+        Cpu::new(Memory::new(), Keypad::new(), Graphics::new())
     }
 }
 
 #[allow(non_snake_case)]
 impl Cpu {
-    pub fn new(memory: Memory, keyboard: Keypad) -> Self {
+    pub fn new(memory: Memory, keyboard: Keypad, graphics: Graphics) -> Self {
         Cpu {
             pc: 0x200,
             ri: 0,
@@ -42,7 +53,7 @@ impl Cpu {
             st: 0,
             memory,
             keyboard,
-            vbuffer: [0; CHIP8_VBUFFER],
+            graphics,
             random: StdRng::from_entropy(),
         }
     }
@@ -61,7 +72,7 @@ impl Cpu {
         let y = nibbles.2;
         let n = nibbles.3;
 
-        let result = match nibbles {
+        let pc_result = match nibbles {
             (0x0, 0x0, 0xC, _)
             | (0x0, 0x0, 0xF, 0xB)
             | (0x0, 0x0, 0xF, 0xC)
@@ -112,12 +123,7 @@ impl Cpu {
             _ => panic!("Unknown opcode: {:#06x}", instruction),
         };
 
-        match result {
-            Wait => (),
-            Hop => self.pc += INSTRUCTION_SIZE,
-            Skip => self.pc += 2 * INSTRUCTION_SIZE,
-            Jump(dest) => self.pc = dest,
-        }
+        self.pc = pc_result.apply(self.pc);
     }
 
     fn unpack_nibbles(instruction: u16) -> (usize, usize, usize, usize) {
@@ -130,7 +136,7 @@ impl Cpu {
     }
 
     fn op_00E0(&mut self) -> PcResult {
-        self.vbuffer.fill(0);
+        self.graphics.clear();
         Hop
     }
 
@@ -246,8 +252,9 @@ impl Cpu {
 
     fn op_Dxyn(&mut self, x: usize, y: usize, n: usize) -> PcResult {
         let sprite = self.memory.load(self.ri as usize, n);
-        let flat = Self::flatten_index(self.v[x] as usize, self.v[y] as usize);
-        let collision = self.draw_and_check_collision(flat, &sprite);
+        let collision =
+            self.graphics
+                .draw_with_collision(self.v[x] as usize, self.v[y] as usize, &sprite);
         self.overflow_flag(collision);
         Hop
     }
@@ -315,24 +322,6 @@ impl Cpu {
         }
     }
 
-    fn draw_and_check_collision(&mut self, index: usize, sprite: &[u8]) -> bool {
-        let mut collision = false;
-        for (i, byte) in self.vbuffer[index..index + sprite.len()]
-            .iter_mut()
-            .enumerate()
-        {
-            *byte ^= sprite[i];
-            if *byte != sprite[i] {
-                collision = true;
-            }
-        }
-        collision
-    }
-
-    fn flatten_index(x: usize, y: usize) -> usize {
-        y * CHIP8_WIDTH + x
-    }
-
     fn skip_with_condition(&self, condition: bool) -> PcResult {
         if condition {
             return PcResult::Skip;
@@ -367,10 +356,10 @@ mod tests {
 
     macro_rules! uses {
         ($cpu_var:ident) => {
-            let $cpu_var = Cpu::new(Memory::new(), Keypad::new());
+            let $cpu_var = Cpu::default();
         };
         (mut $cpu_var:ident) => {
-            let mut $cpu_var = Cpu::new(Memory::new(), Keypad::new());
+            let mut $cpu_var = Cpu::default();
         };
     }
 
@@ -385,6 +374,18 @@ mod tests {
         uses!(mut cpu);
         cpu.decode_execute(0x6000);
         assert_eq!(0x202, cpu.pc);
+    }
+
+    #[test]
+    fn cls_empties_vbuffer() {
+        let mut cpu = Cpu::default();
+        let bytes = &[0x9A, 0x3C];
+        cpu.memory.store(0x100, bytes);
+        cpu.ri = 0x100;
+        cpu.v[0x0] = 2;
+        cpu.decode_execute(0xD002);
+        cpu.decode_execute(0x00E0);
+        assert_eq!(vec![0x0, 0x0], cpu.graphics.read_buffer(2, 2, 2));
     }
 
     #[test]
@@ -687,19 +688,18 @@ mod tests {
     }
 
     #[test]
-    fn drw_two_byte_sprite_no_overlap() {
+    fn drw_two_byte_sprite_no_overlap_no_collision() {
         uses!(mut cpu);
         let bytes = &[0x9A, 0x3C];
         cpu.memory.store(0x100, bytes);
         cpu.ri = 0x100;
         cpu.v[0x0] = 2;
         cpu.decode_execute(0xD002);
-        assert_eq!(bytes, &cpu.vbuffer[130..132]);
         assert_eq!(0, cpu.v[0xF]);
     }
 
     #[test]
-    fn drw_two_byte_sprite_overlap() {
+    fn drw_two_byte_sprite_overlap_collision() {
         uses!(mut cpu);
         let bytes = &[0x9A, 0x3C];
         cpu.memory.store(0x100, bytes);
@@ -708,20 +708,7 @@ mod tests {
         cpu.decode_execute(0xD001);
         cpu.ri = 0x101;
         cpu.decode_execute(0xD001);
-        assert_eq!(&[0xA6], &cpu.vbuffer[130..131]);
         assert_eq!(1, cpu.v[0xF]);
-    }
-
-    #[test]
-    fn cls_empties_vbuffer() {
-        uses!(mut cpu);
-        let bytes = &[0x9A, 0x3C];
-        cpu.memory.store(0x100, bytes);
-        cpu.ri = 0x100;
-        cpu.v[0x0] = 2;
-        cpu.decode_execute(0xD002);
-        cpu.decode_execute(0x00E0);
-        assert_eq!(&[0x0, 0x0], &cpu.vbuffer[130..132]);
     }
 
     #[test]
