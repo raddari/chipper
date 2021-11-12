@@ -156,3 +156,15 @@ impl fmt::Display for Instr {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn load_imm_string() {
+        let instr = Instr::try_from(0x6C3E).unwrap();
+        assert_eq!("ld x12, 62".to_owned(), instr.to_string());
+    }
+}
