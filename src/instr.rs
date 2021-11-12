@@ -107,7 +107,7 @@ impl TryFrom<u16> for Instr {
             (0xF, _, 0x3, 0x3) => StoreBcd(x),
             (0xF, _, 0x5, 0x5) => StoreMem(x),
             (0xF, _, 0x6, 0x5) => LoadMem(x),
-            _ => return Err(format!("No matching instruction for {:#x}", value)),
+            _ => return Err(format!("No matching instruction for {:X}", value)),
         })
     }
 }
@@ -117,12 +117,12 @@ impl fmt::Display for Instr {
         use Instr::*;
 
         match self {
-            SysCall(nnn) => write!(f, "sys {:#05x}", nnn),
+            SysCall(nnn) => write!(f, "sys {:#05X}", nnn),
             ClearScr => write!(f, "cls"),
             Return => write!(f, "ret"),
-            Jump(nnn) => write!(f, "jal {:#05x}", nnn),
-            JumpOffset(nnn) => write!(f, "jalr {:#05x}({})", nnn, Reg(0x0)),
-            FnCall(nnn) => write!(f, "call {:#05x}", nnn),
+            Jump(nnn) => write!(f, "jal {:#05X}", nnn),
+            JumpOffset(nnn) => write!(f, "jalr {:#05X}({})", nnn, Reg(0x0)),
+            FnCall(nnn) => write!(f, "call {:#05X}", nnn),
             SkipEqImm(x, kk) => write!(f, "sei {}, {}", x, kk),
             SkipNeImm(x, kk) => write!(f, "snei {}, {}", x, kk),
             SkipEqReg(x, y) => write!(f, "se {}, {}", x, y),
@@ -141,9 +141,9 @@ impl fmt::Display for Instr {
             XorReg(x, y) => write!(f, "xor {}, {}", x, y),
             ShrReg(x, y) => write!(f, "srl {}, {}", x, y),
             ShlReg(x, y) => write!(f, "sll {}, {}", x, y),
-            LoadAddr(nnn) => write!(f, "ld I, {:#05x}(0)", nnn),
+            LoadAddr(nnn) => write!(f, "ld I, {:#05X}(0)", nnn),
             AddAddr(x) => write!(f, "ld I, {}({})", x, Reg(0x0)),
-            Rand(x, kk) => write!(f, "rnd {}, {:#05x}", x, kk),
+            Rand(x, kk) => write!(f, "rnd {}, {:#05X}", x, kk),
             Draw(x, y, n) => write!(f, "drw {}, {}, {}", x, y, n),
             GetDelay(x) => write!(f, "ld {}, DT", x),
             SetDelay(x) => write!(f, "ld DT, {}", x),
