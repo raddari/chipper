@@ -21,7 +21,7 @@ impl TryFrom<u8> for V {
 
 impl fmt::Display for V {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "x{:x}", self.0)
+        write!(f, "x{:#x}", self.0)
     }
 }
 
