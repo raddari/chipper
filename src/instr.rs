@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
@@ -53,6 +54,67 @@ pub enum Instr {
     StoreBcd(V),
     StoreMem(V),
     LoadMem(V),
+}
+
+impl TryFrom<u16> for Instr {
+    type Error = &'static str;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        use Instr::*;
+
+        let nibbles = (
+            value & 0x000F,
+            (value & 0x00F0) >> 2,
+            (value & 0x0F00) >> 4,
+            (value & 0xF000) >> 6,
+        );
+
+        let x = V(nibbles.2 as u8);
+        let y = V(nibbles.1 as u8);
+
+        let nnn = value & 0x0FFF;
+        let kk = (value & 0xFF) as u8;
+        let n = nibbles.0 as u8;
+
+        Ok(match nibbles {
+            (0x0, 0x0, 0xE, 0x0) => ClearScr,
+            (0x0, 0x0, 0xE, 0xE) => Return,
+            (0x0, _, _, _) => SysCall(nnn),
+            (0x1, _, _, _) => Jump(nnn),
+            (0x2, _, _, _) => FnCall(nnn),
+            (0x3, _, _, _) => SkipEqImm(x, kk),
+            (0x4, _, _, _) => SkipNeImm(x, kk),
+            (0x5, _, _, 0x0) => SkipEqReg(x, y),
+            (0x6, _, _, _) => LoadImm(x, kk),
+            (0x7, _, _, _) => AddImm(x, kk),
+            (0x8, _, _, 0x0) => LoadReg(x, y),
+            (0x8, _, _, 0x1) => OrReg(x, y),
+            (0x8, _, _, 0x2) => AndReg(x, y),
+            (0x8, _, _, 0x3) => XorReg(x, y),
+            (0x8, _, _, 0x4) => AddReg(x, y),
+            (0x8, _, _, 0x5) => SubBorrowReg(x, y),
+            (0x8, _, _, 0x6) => ShrReg(x, y),
+            (0x8, _, _, 0x7) => SubnBorrowReg(x, y),
+            (0x8, _, _, 0xE) => ShlReg(x, y),
+            (0x9, _, _, 0x0) => SkipNeReg(x, y),
+            (0xA, _, _, _) => LoadAddr(nnn),
+            (0xB, _, _, _) => JumpOffset(nnn),
+            (0xC, _, _, _) => Rand(x, kk),
+            (0xD, _, _, _) => Draw(x, y, n),
+            (0xE, _, 0x9, 0xE) => SkipEqKey(x),
+            (0xE, _, 0xA, 0x1) => SkipNeKey(x),
+            (0xF, _, 0x0, 0x7) => GetDelay(x),
+            (0xF, _, 0x0, 0xA) => WaitKey(x),
+            (0xF, _, 0x1, 0x5) => SetDelay(x),
+            (0xF, _, 0x1, 0x8) => SetSound(x),
+            (0xF, _, 0x1, 0xE) => AddAddr(x),
+            (0xF, _, 0x2, 0x9) => LoadDigit(x),
+            (0xF, _, 0x3, 0x3) => StoreBcd(x),
+            (0xF, _, 0x5, 0x5) => StoreMem(x),
+            (0xF, _, 0x6, 0x5) => LoadMem(x),
+            _ => return Err("No such instruction"),
+        })
+    }
 }
 
 impl fmt::Display for Instr {
