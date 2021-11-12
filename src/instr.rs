@@ -142,7 +142,7 @@ impl fmt::Display for Instr {
             ShrReg(x, y) => write!(f, "srl {}, {}", x, y),
             ShlReg(x, y) => write!(f, "sll {}, {}", x, y),
             LoadAddr(nnn) => write!(f, "ld I, {:#05X}(0)", nnn),
-            AddAddr(x) => write!(f, "ld I, {}({})", x, Reg(0x0)),
+            AddAddr(x) => write!(f, "add I, {}", x),
             Rand(x, kk) => write!(f, "rnd {}, {:#05X}", x, kk),
             Draw(x, y, n) => write!(f, "drw {}, {}, {}", x, y, n),
             GetDelay(x) => write!(f, "ld {}, DT", x),
