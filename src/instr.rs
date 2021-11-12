@@ -58,14 +58,14 @@ impl TryFrom<u16> for Instr {
         use Instr::*;
 
         let nibbles = (
+            (value & 0xF000) >> 12,
+            (value & 0x0F00) >> 8,
+            (value & 0x00F0) >> 4,
             value & 0x000F,
-            (value & 0x00F0) >> 2,
-            (value & 0x0F00) >> 4,
-            (value & 0xF000) >> 6,
         );
 
-        let x = Reg(nibbles.2 as u8);
-        let y = Reg(nibbles.1 as u8);
+        let x = Reg(nibbles.1 as u8);
+        let y = Reg(nibbles.2 as u8);
 
         let nnn = value & 0x0FFF;
         let kk = (value & 0xFF) as u8;
