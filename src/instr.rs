@@ -4,9 +4,18 @@ use std::fmt;
 #[derive(Debug, Clone, Copy)]
 pub struct V(pub u8);
 
-impl From<u8> for V {
-    fn from(val: u8) -> Self {
-        Self(val)
+impl TryFrom<u8> for V {
+    type Error = String;
+
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        if val <= 0xF {
+            Ok(Self(val))
+        } else {
+            Err(format!(
+                "Register {:#04x} must be in the range of 0x0 - 0xF",
+                val
+            ))
+        }
     }
 }
 
