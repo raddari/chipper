@@ -12,6 +12,7 @@ impl fmt::Display for Reg {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Instr {
+    // Chip-8
     SysCall(u16),
     ClearScr,
     Return,
@@ -51,7 +52,7 @@ pub enum Instr {
 }
 
 impl TryFrom<u16> for Instr {
-    type Error = &'static str;
+    type Error = String;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         use Instr::*;
@@ -106,7 +107,7 @@ impl TryFrom<u16> for Instr {
             (0xF, _, 0x3, 0x3) => StoreBcd(x),
             (0xF, _, 0x5, 0x5) => StoreMem(x),
             (0xF, _, 0x6, 0x5) => LoadMem(x),
-            _ => return Err("No such instruction"),
+            _ => return Err(format!("No matching instruction for {:#x}", value)),
         })
     }
 }
