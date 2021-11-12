@@ -148,7 +148,7 @@ impl fmt::Display for Instr {
             GetDelay(x) => write!(f, "ld {}, DT", x),
             SetDelay(x) => write!(f, "ld DT, {}", x),
             SetSound(x) => write!(f, "ld ST, {}", x),
-            WaitKey(x) => write!(f, "ld {}, $K", x),
+            WaitKey(x) => write!(f, "ld {}, K", x),
             LoadDigit(x) => write!(f, "ld I, {}", x),
             StoreBcd(x) => write!(f, "bcd [I], {}", x),
             StoreMem(x) => write!(f, "sd [I], {}", x),
