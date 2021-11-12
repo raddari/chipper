@@ -4,21 +4,6 @@ use std::fmt;
 #[derive(Debug, Clone, Copy)]
 pub struct Reg(pub u8);
 
-impl TryFrom<u8> for Reg {
-    type Error = String;
-
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        if val <= 0xF {
-            Ok(Self(val))
-        } else {
-            Err(format!(
-                "Register {:#04x} must be in the range of 0x0 - 0xF",
-                val
-            ))
-        }
-    }
-}
-
 impl fmt::Display for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "x{:#x}", self.0)
