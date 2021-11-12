@@ -167,4 +167,10 @@ mod tests {
         let instr = Instr::try_from(0x6C3E).unwrap();
         assert_eq!("ld x12, 62".to_owned(), instr.to_string());
     }
+
+    #[test]
+    fn jump_offset_string() {
+        let instr = Instr::try_from(0xB8AC).unwrap();
+        assert_eq!("jalr 0x8AC(x0)", instr.to_string());
+    }
 }
