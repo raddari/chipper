@@ -173,4 +173,10 @@ mod tests {
         let instr = Instr::try_from(0xB8AC).unwrap();
         assert_eq!("jalr 0x8AC(x0)", instr.to_string());
     }
+
+    #[test]
+    fn bad_instruction() {
+        let instr = Instr::try_from(0xF001);
+        assert!(instr.is_err());
+    }
 }
