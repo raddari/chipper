@@ -2,9 +2,9 @@ use std::convert::TryFrom;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
-pub struct V(pub u8);
+pub struct Reg(pub u8);
 
-impl TryFrom<u8> for V {
+impl TryFrom<u8> for Reg {
     type Error = String;
 
     fn try_from(val: u8) -> Result<Self, Self::Error> {
@@ -19,7 +19,7 @@ impl TryFrom<u8> for V {
     }
 }
 
-impl fmt::Display for V {
+impl fmt::Display for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "x{:#x}", self.0)
     }
@@ -33,36 +33,36 @@ pub enum Instr {
     Jump(u16),
     JumpOffset(u16),
     FnCall(u16),
-    SkipEqImm(V, u8),
-    SkipNeImm(V, u8),
-    SkipEqReg(V, V),
-    SkipNeReg(V, V),
-    SkipEqKey(V),
-    SkipNeKey(V),
-    LoadImm(V, u8),
-    LoadReg(V, V),
-    AddImm(V, u8),
-    AddReg(V, V),
-    AddCarryReg(V, V),
-    SubBorrowReg(V, V),
-    SubnBorrowReg(V, V),
-    OrReg(V, V),
-    AndReg(V, V),
-    XorReg(V, V),
-    ShrReg(V, V),
-    ShlReg(V, V),
+    SkipEqImm(Reg, u8),
+    SkipNeImm(Reg, u8),
+    SkipEqReg(Reg, Reg),
+    SkipNeReg(Reg, Reg),
+    SkipEqKey(Reg),
+    SkipNeKey(Reg),
+    LoadImm(Reg, u8),
+    LoadReg(Reg, Reg),
+    AddImm(Reg, u8),
+    AddReg(Reg, Reg),
+    AddCarryReg(Reg, Reg),
+    SubBorrowReg(Reg, Reg),
+    SubnBorrowReg(Reg, Reg),
+    OrReg(Reg, Reg),
+    AndReg(Reg, Reg),
+    XorReg(Reg, Reg),
+    ShrReg(Reg, Reg),
+    ShlReg(Reg, Reg),
     LoadAddr(u16),
-    AddAddr(V),
-    Rand(V, u8),
-    Draw(V, V, u8),
-    GetDelay(V),
-    SetDelay(V),
-    SetSound(V),
-    WaitKey(V),
-    LoadDigit(V),
-    StoreBcd(V),
-    StoreMem(V),
-    LoadMem(V),
+    AddAddr(Reg),
+    Rand(Reg, u8),
+    Draw(Reg, Reg, u8),
+    GetDelay(Reg),
+    SetDelay(Reg),
+    SetSound(Reg),
+    WaitKey(Reg),
+    LoadDigit(Reg),
+    StoreBcd(Reg),
+    StoreMem(Reg),
+    LoadMem(Reg),
 }
 
 impl TryFrom<u16> for Instr {
@@ -78,8 +78,8 @@ impl TryFrom<u16> for Instr {
             (value & 0xF000) >> 6,
         );
 
-        let x = V(nibbles.2 as u8);
-        let y = V(nibbles.1 as u8);
+        let x = Reg(nibbles.2 as u8);
+        let y = Reg(nibbles.1 as u8);
 
         let nnn = value & 0x0FFF;
         let kk = (value & 0xFF) as u8;
@@ -135,7 +135,7 @@ impl fmt::Display for Instr {
             ClearScr => write!(f, "cls"),
             Return => write!(f, "ret"),
             Jump(nnn) => write!(f, "jal {:#05x}", nnn),
-            JumpOffset(nnn) => write!(f, "jalr {:#05x}({})", nnn, V(0x0)),
+            JumpOffset(nnn) => write!(f, "jalr {:#05x}({})", nnn, Reg(0x0)),
             FnCall(nnn) => write!(f, "call {:#05x}", nnn),
             SkipEqImm(x, kk) => write!(f, "sei {}, {}", x, kk),
             SkipNeImm(x, kk) => write!(f, "snei {}, {}", x, kk),
@@ -156,7 +156,7 @@ impl fmt::Display for Instr {
             ShrReg(x, y) => write!(f, "srl {}, {}", x, y),
             ShlReg(x, y) => write!(f, "sll {}, {}", x, y),
             LoadAddr(nnn) => write!(f, "ld I, {:#05x}(0)", nnn),
-            AddAddr(x) => write!(f, "ld I, {}({})", x, V(0x0)),
+            AddAddr(x) => write!(f, "ld I, {}({})", x, Reg(0x0)),
             Rand(x, kk) => write!(f, "rnd {}, {:#05x}", x, kk),
             Draw(x, y, n) => write!(f, "drw {}, {}, {}", x, y, n),
             GetDelay(x) => write!(f, "ld {}, DT", x),
