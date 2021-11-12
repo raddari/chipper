@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Debug, Clone, Copy)]
 pub struct V(pub u8);
 
 impl From<u8> for V {
@@ -14,6 +15,7 @@ impl fmt::Display for V {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum Instr {
     SysCall(u16),
     ClearScr,
