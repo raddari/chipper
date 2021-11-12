@@ -6,7 +6,7 @@ pub struct Reg(pub u8);
 
 impl fmt::Display for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "x{:#x}", self.0)
+        write!(f, "x{}", self.0)
     }
 }
 
